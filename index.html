@@ -175,8 +175,8 @@
 </div>
 
 <script>
-    // Paste your published Google Sheet CSV URL here
-    const GOOGLE_SHEET_CSV_URL = 'YOUR_PUBLISHED_GOOGLE_SHEETS_CSV_URL_HERE';
+    // Your published Google Sheets CSV URL
+    const GOOGLE_SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTv3NaMRF2nGAcEb9fP0EV2bpaonpMKdhvTf8goGCAWhq9GfpkQG1_AqbemXkOEbJio2mk_YUgQs6-W/pub?gid=0&single=true&output=csv';
 
     const stages = [
         "1. Vehicle Checked In",
@@ -190,7 +190,7 @@
     async function fetchStatus() {
         const contentDiv = document.getElementById('content');
 
-        // 1. Extract Reg No from URL query string (?reg=AB12WTGP or ?reg=AB 12 WT GP)
+        // Extract Reg No from URL query string (?reg=AB12WTGP or ?reg=AB 12 WT GP)
         const urlParams = new URLSearchParams(window.location.search);
         const rawReg = urlParams.get('reg') || '';
 
@@ -203,7 +203,7 @@
             return;
         }
 
-        // Clean query input: remove spaces/punctuation, convert to UPPERCASE
+        // Clean query input: remove non-alphanumeric chars, convert to UPPERCASE
         const targetReg = rawReg.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
 
         try {
@@ -211,7 +211,7 @@
             const csvText = await response.text();
             const rows = parseCSV(csvText);
 
-            // 2. Find row where Col A cleaned matches targetReg cleaned
+            // Find row where Col A cleaned matches targetReg cleaned
             const matchingRow = rows.find(r => {
                 if (!r[0]) return false;
                 const sheetReg = r[0].replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
@@ -250,7 +250,6 @@
                 if (index < currentStageIndex) stageClass = 'completed';
                 else if (index === currentStageIndex) stageClass = 'active';
 
-                // Strip leading stage numbers for clean UI display
                 const stageLabel = stage.replace(/^\d+\.\s*/, '');
 
                 timelineHtml += `
@@ -306,7 +305,7 @@
         }
     }
 
-    // Basic CSV Parser handling commas and quotes
+    // CSV Parser
     function parseCSV(text) {
         const lines = text.split('\n');
         return lines.map(line => {
