@@ -145,6 +145,19 @@
       }
     }
 
+    // Helper to safely fetch field content by flexible key names or fallback column index
+    function getFieldValue(row, possibleKeys, fallbackIndex) {
+      for (const key of possibleKeys) {
+        const matchingKey = Object.keys(row).find(k => k.trim().toLowerCase() === key.toLowerCase());
+        if (matchingKey && row[matchingKey]) {
+          return row[matchingKey].trim();
+        }
+      }
+      // Fallback to array index if named key isn't found
+      const values = Object.values(row);
+      return values[fallbackIndex] ? values[fallbackIndex].trim() : '';
+    }
+
     function fetchServiceData() {
       if (!cleanTargetReg) {
         document.getElementById('reg-nr').textContent = 'No Reg Provided';
@@ -159,32 +172,42 @@
 
       Papa.parse(SHEET_CSV_URL, {
         download: true,
-        header: false,
+        header: true, // Use named columns to prevent breaks when columns move
         skipEmptyLines: true,
         complete: function(results) {
           const rows = results.data;
           
           const matchedRow = rows.find(row => {
-            const rowReg = (row[0] || '').replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+            const regValue = getFieldValue(row, ['Registration Nr', 'Registration', 'Reg', 'Reg Nr', 'Plate'], 0);
+            const rowReg = regValue.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
             return rowReg === cleanTargetReg;
           });
 
           if (matchedRow) {
-            document.getElementById('reg-nr').textContent = matchedRow[0] || rawReg;
-            document.getElementById('cust-name').textContent = matchedRow[1] || '--';
+            const displayReg = getFieldValue(matchedRow, ['Registration Nr', 'Registration', 'Reg', 'Reg Nr', 'Plate'], 0) || rawReg;
+            const custName = getFieldValue(matchedRow, ['Customer Name', 'Customer', 'Name'], 1) || '--';
+            const rawPhone = getFieldValue(matchedRow, ['WhatsApp', 'Phone', 'Cell', 'Mobile', 'Contact'], 2) || '';
+            const model = getFieldValue(matchedRow, ['Vehicle Model', 'Model', 'Vehicle'], 3) || '--';
+            const tech = getFieldValue(matchedRow, ['Technician', 'Tech', 'Assigned Tech'], 4) || '--';
+            const status = getFieldValue(matchedRow, ['Current Status', 'Status', 'State'], 6) || 'CHECKED IN';
+
+            document.getElementById('reg-nr').textContent = displayReg;
+            document.getElementById('cust-name').textContent = custName;
             
-            const rawPhone = matchedRow[2] || '';
-            const cleanPhone = rawPhone.replace(/[^0-9]/g, '');
+            // Format phone number for WhatsApp international standard (+27 SA country code)
+            let cleanPhone = rawPhone.replace(/[^0-9]/g, '');
+            if (cleanPhone.startsWith('0') && cleanPhone.length === 10) {
+              cleanPhone = '27' + cleanPhone.substring(1);
+            }
+
             if (cleanPhone) {
               document.getElementById('cust-whatsapp').innerHTML = `<a href="https://wa.me/${cleanPhone}" target="_blank" rel="noopener">${rawPhone} <i class="fa-solid fa-arrow-up-right-from-square" style="font-size:10px;"></i></a>`;
             } else {
               document.getElementById('cust-whatsapp').textContent = '--';
             }
 
-            document.getElementById('vehicle-model').textContent = matchedRow[3] || '--';
-            document.getElementById('tech-assigned').textContent = matchedRow[4] || '--';
-            
-            const status = matchedRow[6] || 'CHECKED IN';
+            document.getElementById('vehicle-model').textContent = model;
+            document.getElementById('tech-assigned').textContent = tech;
             document.getElementById('current-status').textContent = status;
             updateStatusBadge(status);
           } else {
