@@ -1,444 +1,138 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Vehicle Live Service Tracker | Potgieter Auto</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OMODA & JAECOO HATFIELD - Live Service Tracker</title>
   
-  <!-- Font Awesome Icons -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- PapaParse for reliable CSV parsing -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
   
-  <!-- PapaParse for CSV Parsing -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
-
   <style>
-    :root {
-      --primary: #1e3a8a;
-      --primary-dark: #1e293b;
-      --accent: #2563eb;
-      --bg: #f8fafc;
-      --card-bg: #ffffff;
-      --text-main: #0f172a;
-      --text-muted: #64748b;
-      --border: #e2e8f0;
-      --success: #16a34a;
-      --success-bg: #dcfce7;
-      --warning: #d97706;
-      --warning-bg: #fef3c7;
-      --info-bg: #eff6ff;
-    }
-
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    }
-
-    body {
-      background-color: var(--bg);
-      color: var(--text-main);
-      display: flex;
-      justify-content: center;
-      min-height: 100vh;
-      padding: 16px;
-    }
-
-    .container {
-      width: 100%;
-      max-width: 480px;
-      margin: 0 auto;
-    }
-
-    .header-card {
-      background: var(--card-bg);
-      border-radius: 16px;
-      padding: 20px;
-      text-align: center;
-      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-      border: 1px solid var(--border);
-      margin-bottom: 16px;
-    }
-
-    .brand-title {
-      font-size: 20px;
-      font-weight: 800;
-      color: var(--primary);
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      margin-bottom: 4px;
-    }
-
-    .subtitle {
-      font-size: 13px;
-      color: var(--text-muted);
-      font-weight: 500;
-    }
-
-    .vehicle-card {
-      background: var(--primary-dark);
-      color: #ffffff;
-      border-radius: 16px;
-      padding: 20px;
-      margin-bottom: 16px;
-      box-shadow: 0 10px 15px -3px rgba(30, 41, 59, 0.2);
-    }
-
-    .vehicle-reg {
-      font-size: 28px;
-      font-weight: 900;
-      letter-spacing: 1px;
-      color: #ffffff;
-      text-transform: uppercase;
-    }
-
-    .customer-name {
-      font-size: 15px;
-      color: #94a3b8;
-      margin-top: 2px;
-      font-weight: 500;
-    }
-
-    .details-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-      margin-top: 16px;
-      padding-top: 16px;
-      border-top: 1px solid rgba(255, 255, 255, 0.1);
-    }
-
-    .detail-item {
-      display: flex;
-      flex-direction: column;
-    }
-
-    .detail-label {
-      font-size: 11px;
-      color: #94a3b8;
-      text-transform: uppercase;
-      font-weight: 600;
-      letter-spacing: 0.5px;
-    }
-
-    .detail-value {
-      font-size: 14px;
-      font-weight: 700;
-      color: #ffffff;
-      margin-top: 2px;
-    }
-
-    .status-card {
-      background: var(--card-bg);
-      border-radius: 16px;
-      padding: 20px;
-      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-      border: 1px solid var(--border);
-      margin-bottom: 16px;
-    }
-
-    .status-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 16px;
-    }
-
-    .status-title {
-      font-size: 14px;
-      font-weight: 700;
-      color: var(--text-muted);
-      text-transform: uppercase;
-    }
-
-    .status-badge {
-      background: var(--info-bg);
-      color: var(--accent);
-      padding: 6px 12px;
-      border-radius: 20px;
-      font-size: 12px;
-      font-weight: 800;
-      text-transform: uppercase;
-      transition: all 0.3s ease;
-    }
-
-    .status-badge.status-ready {
-      background: var(--success-bg);
-      color: var(--success);
-    }
-
-    .status-badge.status-hold {
-      background: var(--warning-bg);
-      color: var(--warning);
-    }
-
-    .notes-box {
-      background: #f1f5f9;
-      border-radius: 12px;
-      padding: 14px;
-      font-size: 13px;
-      color: var(--text-main);
-      line-height: 1.5;
-      border-left: 4px solid var(--accent);
-      margin-bottom: 16px;
-      white-space: pre-line;
-    }
-
-    .call-btn {
-      width: 100%;
-      background: var(--primary);
-      color: #ffffff;
-      text-decoration: none;
-      padding: 14px;
-      border-radius: 12px;
-      font-weight: 800;
-      font-size: 14px;
-      text-align: center;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      transition: background 0.2s;
-    }
-
-    .call-btn:hover {
-      background: #1d4ed8;
-    }
-
-    .live-indicator {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-      font-size: 11px;
-      color: var(--text-muted);
-      margin-top: 12px;
-      font-weight: 600;
-    }
-
-    .pulse-dot {
-      width: 8px;
-      height: 8px;
-      background-color: var(--success);
-      border-radius: 50%;
-      animation: pulse 2s infinite;
-    }
-
-    @keyframes pulse {
-      0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.7); }
-      70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(22, 163, 74, 0); }
-      100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(22, 163, 74, 0); }
-    }
-
-    .loading-screen, .error-screen {
-      background: var(--card-bg);
-      border-radius: 16px;
-      padding: 40px 20px;
-      text-align: center;
-      border: 1px solid var(--border);
-    }
-
-    .spinner {
-      border: 3px solid #f3f3f3;
-      border-top: 3px solid var(--accent);
-      border-radius: 50%;
-      width: 36px;
-      height: 36px;
-      animation: spin 1s linear infinite;
-      margin: 0 auto 16px;
-    }
-
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-
-    .hidden {
-      display: none !important;
-    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Roboto, sans-serif; }
+    body { background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; color: #334155; }
+    .card { background: #ffffff; border-radius: 20px; box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3); max-width: 550px; width: 100%; overflow: hidden; }
+    .header { background: linear-gradient(135deg, #0b1f3a 0%, #1e3a8a 100%); color: #ffffff; padding: 30px 20px; text-align: center; }
+    .header h1 { font-size: 22px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 6px; display: flex; align-items: center; justify-content: center; gap: 10px; }
+    .header p { color: #93c5fd; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1.5px; }
+    .card-body { padding: 25px 20px; }
+    .info-list { display: flex; flex-direction: column; gap: 12px; }
+    .info-row { background-color: #f8fafc; border: 1px solid #e2e8f0; padding: 14px 18px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; }
+    .label { font-size: 11px; font-weight: 800; color: #64748b; letter-spacing: 0.8px; display: flex; align-items: center; gap: 8px; text-transform: uppercase; }
+    .label i { font-size: 14px; color: #3b82f6; }
+    .value { font-size: 14px; font-weight: 700; color: #0f172a; }
+    .status-badge { background: #dcfce7; color: #15803d; border: 1px solid #86efac; padding: 6px 14px; border-radius: 30px; font-size: 12px; font-weight: 800; display: inline-flex; align-items: center; gap: 8px; }
+    .status-dot { width: 8px; height: 8px; background-color: #22c55e; border-radius: 50%; animation: pulse 1.5s infinite; }
+    @keyframes pulse { 0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); } 70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(34, 197, 94, 0); } 100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); } }
+    .call-btn-container { margin-top: 25px; }
+    .call-btn { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); color: #ffffff; padding: 16px; border-radius: 12px; text-decoration: none; font-weight: 800; font-size: 15px; }
   </style>
 </head>
 <body>
 
-  <div class="container">
-    
-    <!-- HEADER -->
-    <div class="header-card">
-      <div class="brand-title">Potgieter Auto</div>
-      <div class="subtitle">Live Service & Repair Status</div>
+  <div class="card">
+    <div class="header">
+      <h1><i class="fa-solid fa-car-side"></i> OMODA & JAECOO HATFIELD</h1>
+      <p><i class="fa-solid fa-bolt"></i> Live Service Tracker</p>
     </div>
 
-    <!-- LOADING SCREEN -->
-    <div id="loading" class="loading-screen">
-      <div class="spinner"></div>
-      <p style="font-size: 14px; color: var(--text-muted); font-weight: 600;">Fetching live status...</p>
-    </div>
-
-    <!-- ERROR SCREEN -->
-    <div id="error-box" class="error-screen hidden">
-      <i class="fa-solid fa-circle-exclamation" style="font-size: 32px; color: var(--warning); margin-bottom: 12px;"></i>
-      <h3 style="font-size: 16px; font-weight: 800; margin-bottom: 6px;" id="error-title">Vehicle Not Found</h3>
-      <p style="font-size: 13px; color: var(--text-muted);" id="error-msg">Please double-check the registration number or link provided.</p>
-    </div>
-
-    <!-- MAIN TRACKER CONTENT -->
-    <div id="tracker-content" class="hidden">
-      
-      <!-- VEHICLE DETAILS CARD -->
-      <div class="vehicle-card">
-        <div class="vehicle-reg" id="display-reg">---</div>
-        <div class="customer-name" id="display-name">Valued Customer</div>
+    <div class="card-body">
+      <div class="info-list">
         
-        <div class="details-grid">
-          <div class="detail-item">
-            <span class="detail-label">Make & Model</span>
-            <span class="detail-value" id="display-model">---</span>
-          </div>
-          <div class="detail-item">
-            <span class="detail-label">Technician</span>
-            <span class="detail-value" id="display-tech">---</span>
-          </div>
+        <div class="info-row">
+          <span class="label"><i class="fa-solid fa-id-card"></i> Registration Nr</span>
+          <span class="value" id="reg-nr">Loading...</span>
         </div>
+
+        <div class="info-row">
+          <span class="label"><i class="fa-solid fa-user"></i> Customer Name</span>
+          <span class="value" id="cust-name">Loading...</span>
+        </div>
+
+        <div class="info-row">
+          <span class="label"><i class="fa-brands fa-whatsapp" style="color:#25D366;"></i> WhatsApp</span>
+          <span class="value" id="cust-whatsapp">Loading...</span>
+        </div>
+
+        <div class="info-row">
+          <span class="label"><i class="fa-solid fa-car"></i> Vehicle Model</span>
+          <span class="value" id="vehicle-model">Loading...</span>
+        </div>
+
+        <div class="info-row">
+          <span class="label"><i class="fa-solid fa-user-gear"></i> Technician</span>
+          <span class="value" id="tech-assigned">Loading...</span>
+        </div>
+
+        <div class="info-row">
+          <span class="label"><i class="fa-solid fa-gauge-high"></i> Current Status</span>
+          <span class="status-badge">
+            <span class="status-dot"></span> <span id="current-status">Loading...</span>
+          </span>
+        </div>
+
       </div>
 
-      <!-- STATUS CARD -->
-      <div class="status-card">
-        <div class="status-header">
-          <span class="status-title">Current Status</span>
-          <span class="status-badge" id="display-status">IN PROGRESS</span>
-        </div>
-
-        <div class="notes-box" id="display-notes">
-          Your vehicle is currently being serviced. We will update notes as progress is made.
-        </div>
-
-        <a href="tel:0120023088" class="call-btn">
-          <i class="fa-solid fa-phone"></i> CALL WORKSHOP
+      <div class="call-btn-container">
+        <a href="tel:+27120000000" class="call-btn">
+          <i class="fa-solid fa-phone"></i> CALL DEALERSHIP
         </a>
-
-        <div class="live-indicator">
-          <div class="pulse-dot"></div> Auto-updating live tracker
-        </div>
       </div>
-
     </div>
-
   </div>
 
   <script>
-    const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTv3NaMRF2nGAcEb9fP0EV2bpaonpMKdhvTf8goGCAWhq9GfpkQG1_AqbemXkOEbJio2mk_YUgQs6-W/pub?gid=0&single=true&output=csv';
-    let isInitialLoad = true;
+    const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTv3NaMRF2nGAcEb9fP0EV2bpaonpMKdhvTf8goGCAWhq9GfpkQG1_AqbemXkOEbJio2mk_YUgQs6-W/pub?gid=0&single=true&output=csv';
 
-    function getQueryParam(param) {
-      const urlParams = new URLSearchParams(window.location.search);
-      return urlParams.get(param);
-    }
+    const urlParams = new URLSearchParams(window.location.search);
+    const rawReg = urlParams.get('reg') || '';
+    const cleanTargetReg = rawReg.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
 
-    // Strips all spaces, hyphens, and non-alphanumeric characters for clean matching
-    function cleanReg(str) {
-      if (!str) return '';
-      return decodeURIComponent(str).replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
-    }
-
-    function getVal(row, possibleKeys, defaultVal = '---') {
-      for (let key of Object.keys(row)) {
-        const cleanKey = key.trim().toUpperCase();
-        if (possibleKeys.includes(cleanKey)) {
-          return row[key] ? row[key].trim() : defaultVal;
-        }
-      }
-      return defaultVal;
-    }
-
-    function fetchServiceData() {
-      const targetRegParam = getQueryParam('reg');
-
-      if (!targetRegParam) {
-        showError('No Registration Provided', 'Please click the tracking link sent to you.');
-        return;
-      }
-
-      const cleanSearchReg = cleanReg(targetRegParam);
-      const cacheBustedUrl = `${CSV_URL}&_cb=${Date.now()}`;
-
-      Papa.parse(cacheBustedUrl, {
+    if (!cleanTargetReg) {
+      document.getElementById('reg-nr').textContent = 'No Reg Provided';
+      document.getElementById('cust-name').textContent = '--';
+      document.getElementById('cust-whatsapp').textContent = '--';
+      document.getElementById('vehicle-model').textContent = '--';
+      document.getElementById('tech-assigned').textContent = '--';
+      document.getElementById('current-status').textContent = 'N/A';
+    } else {
+      Papa.parse(SHEET_CSV_URL, {
         download: true,
-        header: true,
+        header: false,
         skipEmptyLines: true,
         complete: function(results) {
           const rows = results.data;
-          let matchedRow = null;
-
-          for (let i = 0; i < rows.length; i++) {
-            const row = rows[i];
-            const rawSheetReg = getVal(row, ['REG', 'REGISTRATION', 'REG NO', 'REGNO', 'LICENSE'], '');
-            const cleanSheetReg = cleanReg(rawSheetReg);
-
-            if (cleanSheetReg === cleanSearchReg) {
-              matchedRow = row;
-              break;
-            }
-          }
+          
+          // Search row where Column A registration matches ignoring spaces and special chars
+          const matchedRow = rows.find(row => {
+            const rowReg = (row[0] || '').replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+            return rowReg === cleanTargetReg;
+          });
 
           if (matchedRow) {
-            renderTracker(matchedRow);
-          } else if (isInitialLoad) {
-            showError('Vehicle Not Found', `No active record found for "${targetRegParam.toUpperCase()}".`);
+            document.getElementById('reg-nr').textContent = matchedRow[0] || rawReg;
+            document.getElementById('cust-name').textContent = matchedRow[1] || '--';
+            document.getElementById('cust-whatsapp').textContent = matchedRow[2] || '--';
+            document.getElementById('vehicle-model').textContent = matchedRow[3] || '--';
+            document.getElementById('tech-assigned').textContent = matchedRow[4] || '--';
+            document.getElementById('current-status').textContent = matchedRow[6] || 'CHECKED IN';
+          } else {
+            document.getElementById('reg-nr').textContent = rawReg;
+            document.getElementById('cust-name').textContent = 'Vehicle Not Found';
+            document.getElementById('cust-whatsapp').textContent = '--';
+            document.getElementById('vehicle-model').textContent = '--';
+            document.getElementById('tech-assigned').textContent = '--';
+            document.getElementById('current-status').textContent = 'NOT FOUND';
           }
-          isInitialLoad = false;
         },
         error: function(err) {
-          if (isInitialLoad) {
-            showError('Connection Error', 'Unable to connect to Google Sheets. Ensure your sheet is published to the web.');
-          }
+          console.error(err);
+          document.getElementById('cust-name').textContent = 'Error Loading Data';
         }
       });
     }
-
-    function renderTracker(data) {
-      document.getElementById('loading').classList.add('hidden');
-      document.getElementById('error-box').classList.add('hidden');
-      document.getElementById('tracker-content').classList.remove('hidden');
-
-      const regVal = getVal(data, ['REG', 'REGISTRATION', 'REG NO', 'REGNO'], '---');
-      const nameVal = getVal(data, ['NAME', 'CUSTOMER', 'CLIENT'], 'Valued Customer');
-      const modelVal = getVal(data, ['VEHICLE', 'MODEL', 'CAR'], '---');
-      const techVal = getVal(data, ['TECHNICIAN', 'TECH'], 'Assigned Tech');
-      const statusVal = getVal(data, ['STATUS', 'PROGRESS'], 'In Workshop');
-      const notesVal = getVal(data, ['NOTES', 'COMMENTS', 'REMARKS'], 'Work is currently underway on your vehicle.');
-
-      document.getElementById('display-reg').textContent = regVal.toUpperCase();
-      document.getElementById('display-name').textContent = nameVal;
-      document.getElementById('display-model').textContent = modelVal;
-      document.getElementById('display-tech').textContent = techVal;
-      
-      const statusBadge = document.getElementById('display-status');
-      statusBadge.textContent = statusVal;
-      
-      const upperStatus = statusVal.toUpperCase();
-      statusBadge.className = 'status-badge';
-      if (upperStatus.includes('READY') || upperStatus.includes('DONE') || upperStatus.includes('COMPLETE')) {
-        statusBadge.classList.add('status-ready');
-      } else if (upperStatus.includes('HOLD') || upperStatus.includes('WAITING') || upperStatus.includes('PARTS')) {
-        statusBadge.classList.add('status-hold');
-      }
-
-      document.getElementById('display-notes').textContent = notesVal;
-    }
-
-    function showError(title, message) {
-      document.getElementById('loading').classList.add('hidden');
-      document.getElementById('tracker-content').classList.add('hidden');
-      
-      document.getElementById('error-title').textContent = title;
-      document.getElementById('error-msg').textContent = message;
-      document.getElementById('error-box').classList.remove('hidden');
-    }
-
-    window.addEventListener('DOMContentLoaded', () => {
-      fetchServiceData();
-      setInterval(fetchServiceData, 30000);
-    });
   </script>
+
 </body>
 </html>
