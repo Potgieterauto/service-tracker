@@ -162,7 +162,6 @@
       transition: all 0.3s ease;
     }
 
-    /* Dynamic Status Badge Colors */
     .status-badge.status-ready {
       background: var(--success-bg);
       color: var(--success);
@@ -182,16 +181,11 @@
       line-height: 1.5;
       border-left: 4px solid var(--accent);
       margin-bottom: 16px;
-      white-space: pre-line; /* Preserves line breaks in technician notes */
-    }
-
-    .call-btn-container {
-      display: flex;
-      gap: 8px;
+      white-space: pre-line;
     }
 
     .call-btn {
-      flex: 1;
+      width: 100%;
       background: var(--primary);
       color: #ffffff;
       text-decoration: none;
@@ -209,25 +203,6 @@
 
     .call-btn:hover {
       background: #1d4ed8;
-    }
-
-    .wa-btn {
-      background: #25D366;
-      color: #ffffff;
-      padding: 0 16px;
-      border-radius: 12px;
-      text-decoration: none;
-      font-weight: 800;
-      font-size: 13px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-      transition: opacity 0.2s;
-    }
-
-    .wa-btn:hover {
-      opacity: 0.9;
     }
 
     .live-indicator {
@@ -337,14 +312,9 @@
           Your vehicle is currently being serviced. We will update notes as progress is made.
         </div>
 
-        <div class="call-btn-container">
-          <a href="tel:0120023088" class="call-btn">
-            <i class="fa-solid fa-phone"></i> CALL WORKSHOP
-          </a>
-          <a href="#" id="wa-share-btn" target="_blank" rel="noopener" class="wa-btn hidden">
-            <i class="fa-brands fa-whatsapp"></i> WhatsApp
-          </a>
-        </div>
+        <a href="tel:0120023088" class="call-btn">
+          <i class="fa-solid fa-phone"></i> CALL WORKSHOP
+        </a>
 
         <div class="live-indicator">
           <div class="pulse-dot"></div> Auto-updating live tracker
@@ -383,12 +353,11 @@
       const targetRegParam = getQueryParam('reg');
 
       if (!targetRegParam) {
-        showError('No Registration Provided', 'Please click the tracking link sent via WhatsApp.');
+        showError('No Registration Provided', 'Please click the tracking link sent to you.');
         return;
       }
 
       const cleanSearchReg = cleanReg(targetRegParam);
-      // Cache bust parameter ensures fresh Google Sheet fetch
       const cacheBustedUrl = `${CSV_URL}&_cb=${Date.now()}`;
 
       Papa.parse(cacheBustedUrl, {
@@ -413,7 +382,7 @@
           if (matchedRow) {
             renderTracker(matchedRow);
           } else if (isInitialLoad) {
-            showError('Vehicle Not Found', `No active record found for "${targetRegParam.toUpperCase()}". Please wait up to 45 seconds if the row was just created.`);
+            showError('Vehicle Not Found', `No active record found for "${targetRegParam.toUpperCase()}".`);
           }
           isInitialLoad = false;
         },
@@ -436,7 +405,6 @@
       const techVal = getVal(data, ['TECHNICIAN', 'TECH'], 'Assigned Tech');
       const statusVal = getVal(data, ['STATUS', 'PROGRESS'], 'In Workshop');
       const notesVal = getVal(data, ['NOTES', 'COMMENTS', 'REMARKS'], 'Work is currently underway on your vehicle.');
-      const phoneVal = getVal(data, ['PHONE', 'WHATSAPP', 'MOBILE', 'CONTACT'], '');
 
       document.getElementById('display-reg').textContent = regVal.toUpperCase();
       document.getElementById('display-name').textContent = nameVal;
@@ -446,9 +414,8 @@
       const statusBadge = document.getElementById('display-status');
       statusBadge.textContent = statusVal;
       
-      // Update badge style based on status keywords
       const upperStatus = statusVal.toUpperCase();
-      statusBadge.className = 'status-badge'; // Reset classes
+      statusBadge.className = 'status-badge';
       if (upperStatus.includes('READY') || upperStatus.includes('DONE') || upperStatus.includes('COMPLETE')) {
         statusBadge.classList.add('status-ready');
       } else if (upperStatus.includes('HOLD') || upperStatus.includes('WAITING') || upperStatus.includes('PARTS')) {
@@ -456,18 +423,6 @@
       }
 
       document.getElementById('display-notes').textContent = notesVal;
-
-      const waBtn = document.getElementById('wa-share-btn');
-      if (phoneVal && phoneVal !== '---' && waBtn) {
-        let cleanPhone = phoneVal.toString().replace(/[^0-9]/g, '');
-        if (cleanPhone.startsWith('0')) {
-          cleanPhone = '27' + cleanPhone.substring(1);
-        }
-        const currentUrl = window.location.href;
-        const msg = encodeURIComponent(`Hello ${nameVal}, here is your live vehicle service tracking link for ${regVal}: ${currentUrl}`);
-        waBtn.href = `https://wa.me/${cleanPhone}?text=${msg}`;
-        waBtn.classList.remove('hidden');
-      }
     }
 
     function showError(title, message) {
@@ -481,7 +436,6 @@
 
     window.addEventListener('DOMContentLoaded', () => {
       fetchServiceData();
-      // Auto-refresh data silently every 30 seconds
       setInterval(fetchServiceData, 30000);
     });
   </script>
