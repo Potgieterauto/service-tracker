@@ -137,10 +137,10 @@
     <script>
         const BASE_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTv3NaMRF2nGAcEb9fP0EV2bpaonpMKdhvTf8goGCAWhq9GfpkQG1_AqbemXkOEbJio2mk_YUgQs6-W/pub?gid=0&single=true&output=csv';
         
-        // Refresh interval in milliseconds (5000ms = 5 seconds)
+        // Refresh rate in milliseconds (5000 = 5 seconds)
         const REFRESH_INTERVAL_MS = 5000; 
 
-        let lastDataString = ''; // Track changes to avoid unnecessary re-renders
+        let lastDataString = '';
 
         function parseCSV(text) {
             const lines = text.split(/\r\n|\n/);
@@ -194,7 +194,7 @@
             }
 
             try {
-                // Append cache buster timestamp (?_t=123456) so browser always fetches live Google Sheet data
+                // Force network request without browser caching
                 const cacheBusterUrl = `${BASE_CSV_URL}&_t=${Date.now()}`;
                 const response = await fetch(cacheBusterUrl, { cache: 'no-store' });
 
@@ -235,8 +235,8 @@
                 }
 
                 if (matchedRowData) {
-                    // Only update the DOM if the underlying data actually changed
                     const currentDataString = JSON.stringify(matchedRowData);
+                    // Only re-render when data actually changes to prevent UI flickering
                     if (currentDataString !== lastDataString) {
                         lastDataString = currentDataString;
                         displayVehicleInfo(matchedRowData);
@@ -287,10 +287,10 @@
             contentDiv.innerHTML = html;
         }
 
-        // Initial fetch
+        // Initial load
         fetchVehicleData(true);
 
-        // Auto-refresh polling loop (fetches every 5 seconds)
+        // Auto-refresh interval
         setInterval(() => {
             fetchVehicleData(false);
         }, REFRESH_INTERVAL_MS);
