@@ -175,7 +175,6 @@
 </div>
 
 <script>
-    // Direct CORS-friendly gviz endpoint with your Spreadsheet ID
     const GOOGLE_SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/1tIxq1MR-aSYjvvS_A2OmtUzKQhVnvcryjYqb51K2U3Y/gviz/tq?tqx=out:csv';
 
     const stages = [
@@ -190,7 +189,6 @@
     async function fetchStatus() {
         const contentDiv = document.getElementById('content');
 
-        // Extract Reg No from URL query string (?reg=AB12WTGP or ?reg=AB 12 WT GP)
         const urlParams = new URLSearchParams(window.location.search);
         const rawReg = urlParams.get('reg') || '';
 
@@ -203,17 +201,28 @@
             return;
         }
 
-        // Clean query input: remove non-alphanumeric chars, convert to UPPERCASE
+        // Clean query registration number
         const targetReg = rawReg.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
 
         try {
             const response = await fetch(GOOGLE_SHEET_CSV_URL);
             const csvText = await response.text();
+            
+            // Check if sheet returned an HTML login page instead of CSV
+            if (csvText.includes('<!DOCTYPE html>') || csvText.includes('<html')) {
+                contentDiv.innerHTML = `
+                    <div class="error-card">
+                        <h2>Permission Required</h2>
+                        <p>Please ensure your Google Sheet General Access is set to <strong>"Anyone with the link can view"</strong>.</p>
+                    </div>`;
+                return;
+            }
+
             const rows = parseCSV(csvText);
 
-            // Find row where Col A cleaned matches targetReg cleaned
+            // Find matching row (stripping all quotes, spaces, special chars)
             const matchingRow = rows.find(r => {
-                if (!r[0]) return false;
+                if (!r || !r[0]) return false;
                 const sheetReg = r[0].replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
                 return sheetReg === targetReg;
             });
@@ -227,23 +236,24 @@
                 return;
             }
 
-            // Extract data from Google Sheet columns
-            const regNo = matchingRow[0] || 'N/A';
-            const clientName = matchingRow[1] || 'Valued Customer';
-            const model = matchingRow[3] || 'Vehicle';
-            const technician = matchingRow[4] || 'Assigned Tech';
-            const estTime = matchingRow[5] || 'Pending';
-            const currentStatus = (matchingRow[6] || '').trim();
-            const notes = matchingRow[7] || '';
+            // Extract data (clean quotes out of strings)
+            const clean = (val) => (val || '').replace(/^"|"$/g, '').trim();
 
-            // Find index of current status
+            const regNo = clean(matchingRow[0]) || 'N/A';
+            const clientName = clean(matchingRow[1]) || 'Valued Customer';
+            const model = clean(matchingRow[3]) || 'Vehicle';
+            const technician = clean(matchingRow[4]) || 'Assigned Tech';
+            const estTime = clean(matchingRow[5]) || 'Pending';
+            const currentStatus = clean(matchingRow[6]);
+            const notes = clean(matchingRow[7]);
+
+            // Determine status stage
             let currentStageIndex = stages.findIndex(s => s.toLowerCase() === currentStatus.toLowerCase());
             if (currentStageIndex === -1) {
-                // Partial matching fallback
                 currentStageIndex = stages.findIndex(s => currentStatus.toLowerCase().includes(s.substring(3).toLowerCase()));
             }
 
-            // Render output
+            // Render Timeline
             let timelineHtml = '';
             stages.forEach((stage, index) => {
                 let stageClass = '';
@@ -260,7 +270,7 @@
             });
 
             let notesHtml = '';
-            if (notes.trim() !== '') {
+            if (notes !== '') {
                 notesHtml = `
                     <div class="notes-box">
                         <strong>Workshop Note:</strong> ${escapeHtml(notes)}
@@ -305,9 +315,8 @@
         }
     }
 
-    // CSV Parser
     function parseCSV(text) {
-        const lines = text.split('\n');
+        const lines = text.split(/\r?\n/);
         return lines.map(line => {
             const result = [];
             let current = '';
@@ -317,13 +326,13 @@
                 if (char === '"') {
                     inQuotes = !inQuotes;
                 } else if (char === ',' && !inQuotes) {
-                    result.push(current.trim());
+                    result.push(current);
                     current = '';
                 } else {
                     current += char;
                 }
             }
-            result.push(current.trim());
+            result.push(current);
             return result;
         });
     }
