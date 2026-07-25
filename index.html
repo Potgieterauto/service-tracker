@@ -99,7 +99,7 @@
       </div>
 
       <div class="call-btn-container">
-        <a href="tel:+27120023088" class="call-btn">
+        <a href="tel:0120023088" class="call-btn">
           <i class="fa-solid fa-phone"></i> CALL DEALERSHIP (012 002 3088)
         </a>
       </div>
@@ -108,7 +108,7 @@
 
   <script>
     const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTv3NaMRF2nGAcEb9fP0EV2bpaonpMKdhvTf8goGCAWhq9GfpkQG1_AqbemXkOEbJio2mk_YUgQs6-W/pub?gid=0&single=true&output=csv';
-    const REFRESH_INTERVAL_MS = 30000; // Auto-refreshes data every 30 seconds
+    const REFRESH_INTERVAL_MS = 30000;
 
     const urlParams = new URLSearchParams(window.location.search);
     const rawReg = urlParams.get('reg') || '';
@@ -116,7 +116,7 @@
 
     function updateStatusBadge(statusText) {
       const badge = document.getElementById('status-badge');
-      badge.className = 'status-badge'; // Reset classes
+      badge.className = 'status-badge'; 
       
       const textUpper = (statusText || '').toUpperCase();
       if (textUpper.includes('READY') || textUpper.includes('COMPLETE') || textUpper.includes('COLLECT')) {
@@ -156,7 +156,6 @@
             document.getElementById('reg-nr').textContent = matchedRow[0] || rawReg;
             document.getElementById('cust-name').textContent = matchedRow[1] || '--';
             
-            // Format WhatsApp field into clickable link if a number exists
             const rawPhone = matchedRow[2] || '';
             const cleanPhone = rawPhone.replace(/[^0-9]/g, '');
             if (cleanPhone) {
@@ -189,10 +188,7 @@
       });
     }
 
-    // Initial Fetch
     fetchServiceData();
-
-    // Polling setup for background live updates
     setInterval(fetchServiceData, REFRESH_INTERVAL_MS);
   </script>
 
