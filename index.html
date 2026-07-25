@@ -1,16 +1,188 @@
-<!-- Example Header -->
-<h2><i class="fa-solid fa-car"></i> OMODA & JAECOO HATFIELD</h2>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OMODA & JAECOO HATFIELD - Live Service Tracker</title>
+  
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
 
-<!-- Example Row with Icon -->
-<div class="info-row">
-  <span class="label"><i class="fa-solid fa-user"></i> CUSTOMER NAME</span>
-  <span class="value">MR JASON POTGIETER</span>
-</div>
+    body {
+      background-color: #f0f2f5;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
 
-<!-- Example Dynamic Status Badge -->
-<div class="info-row">
-  <span class="label"><i class="fa-solid fa-clock"></i> CURRENT STATUS</span>
-  <span class="badge status-checked-in">
-    <i class="fa-solid fa-circle-check"></i> CHECKED IN
-  </span>
-</div>
+    .card {
+      background: #ffffff;
+      padding: 35px 30px;
+      border-radius: 16px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+      max-width: 600px;
+      width: 100%;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 25px;
+    }
+
+    .header h1 {
+      font-size: 22px;
+      color: #0b1f3a;
+      letter-spacing: 0.5px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+
+    .header p {
+      color: #6c757d;
+      font-size: 14px;
+      margin-top: 5px;
+    }
+
+    .info-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .info-row {
+      background-color: #f8f9fa;
+      padding: 12px 18px;
+      border-radius: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .label {
+      font-size: 12px;
+      font-weight: 700;
+      color: #8a94a6;
+      letter-spacing: 0.5px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .value {
+      font-size: 14px;
+      font-weight: 700;
+      color: #0b1f3a;
+    }
+
+    .status-badge {
+      background-color: #e2e8f0;
+      color: #334155;
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .call-btn-container {
+      margin-top: 25px;
+      text-align: center;
+    }
+
+    .call-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      width: 100%;
+      background-color: #0d6efd;
+      color: #ffffff;
+      padding: 14px;
+      border-radius: 10px;
+      text-decoration: none;
+      font-weight: 700;
+      font-size: 15px;
+      transition: background-color 0.2s ease, transform 0.1s ease;
+    }
+
+    .call-btn:hover {
+      background-color: #0b5ed7;
+      transform: translateY(-1px);
+    }
+
+    .whatsapp-icon {
+      color: #25D366;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="card">
+    <div class="header">
+      <h1><i class="fa-solid fa-car-side"></i> OMODA & JAECOO HATFIELD</h1>
+      <p>Live Vehicle Service Tracker</p>
+    </div>
+
+    <div class="info-list">
+      <div class="info-row">
+        <span class="label"><i class="fa-solid fa-id-card"></i> REGISTRATION NR</span>
+        <span class="value" id="reg-nr">--</span>
+      </div>
+
+      <div class="info-row">
+        <span class="label"><i class="fa-solid fa-user"></i> CUSTOMER NAME</span>
+        <span class="value" id="cust-name">--</span>
+      </div>
+
+      <div class="info-row">
+        <span class="label"><i class="fa-brands fa-whatsapp whatsapp-icon"></i> CUSTOMER WHATSAPP</span>
+        <span class="value" id="cust-whatsapp">--</span>
+      </div>
+
+      <div class="info-row">
+        <span class="label"><i class="fa-solid fa-car"></i> VEHICLE MODEL</span>
+        <span class="value" id="vehicle-model">--</span>
+      </div>
+
+      <div class="info-row">
+        <span class="label"><i class="fa-solid fa-wrench"></i> TECHNICIAN ASSIGNED</span>
+        <span class="value" id="tech-assigned">--</span>
+      </div>
+
+      <div class="info-row">
+        <span class="label"><i class="fa-solid fa-clock"></i> CURRENT STATUS</span>
+        <span class="status-badge" id="current-status">
+          <i class="fa-solid fa-circle-info"></i> CHECKED IN
+        </span>
+      </div>
+
+      <div class="info-row">
+        <span class="label"><i class="fa-solid fa-link"></i> TRACKING LINK</span>
+        <span class="value" id="tracking-link" style="font-size: 11px; word-break: break-all;">--</span>
+      </div>
+    </div>
+
+    <!-- Direct Dealership Call Button -->
+    <div class="call-btn-container">
+      <a href="tel:+27120000000" class="call-btn">
+        <i class="fa-solid fa-phone"></i> Call Omoda & Jaecoo Hatfield
+      </a>
+    </div>
+  </div>
+
+</body>
+</html>
