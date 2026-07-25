@@ -334,9 +334,10 @@
       return urlParams.get(param);
     }
 
+    // Strips all spaces, hyphens, and non-alphanumeric characters for clean matching
     function cleanReg(str) {
       if (!str) return '';
-      return str.toString().replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+      return decodeURIComponent(str).replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
     }
 
     function getVal(row, possibleKeys, defaultVal = '---') {
