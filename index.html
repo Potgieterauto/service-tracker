@@ -1,236 +1,418 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>OMODA & JAECOO HATFIELD - Live Service Tracker</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Vehicle Live Service Tracker | Potgieter Auto</title>
   
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <!-- PapaParse for reliable CSV parsing -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   
+  <!-- PapaParse for CSV Parsing -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Roboto, sans-serif; }
-    body { background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; color: #334155; }
-    .card { background: #ffffff; border-radius: 20px; box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3); max-width: 550px; width: 100%; overflow: hidden; }
-    .header { background: linear-gradient(135deg, #0b1f3a 0%, #1e3a8a 100%); color: #ffffff; padding: 30px 20px; text-align: center; position: relative; }
-    .header h1 { font-size: 22px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 6px; display: flex; align-items: center; justify-content: center; gap: 10px; }
-    .header p { color: #93c5fd; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1.5px; }
-    
-    /* Auto-refresh indicator */
-    .live-indicator { position: absolute; top: 15px; right: 15px; background: rgba(255, 255, 255, 0.1); padding: 4px 10px; border-radius: 20px; font-size: 10px; color: #93c5fd; font-weight: 700; display: flex; align-items: center; gap: 6px; }
-    .live-dot { width: 6px; height: 6px; background-color: #38bdf8; border-radius: 50%; animation: pulse-live 2s infinite; }
-    @keyframes pulse-live { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
+    :root {
+      --primary: #1e3a8a;
+      --primary-dark: #1e293b;
+      --accent: #2563eb;
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+      --success: #16a34a;
+      --warning: #d97706;
+    }
 
-    .card-body { padding: 25px 20px; }
-    .info-list { display: flex; flex-direction: column; gap: 12px; }
-    .info-row { background-color: #f8fafc; border: 1px solid #e2e8f0; padding: 14px 18px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; }
-    .label { font-size: 11px; font-weight: 800; color: #64748b; letter-spacing: 0.8px; display: flex; align-items: center; gap: 8px; text-transform: uppercase; }
-    .label i { font-size: 14px; color: #3b82f6; }
-    .value { font-size: 14px; font-weight: 700; color: #0f172a; text-align: right; }
-    .value a { color: #16a34a; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
-    .value a:hover { text-decoration: underline; }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
 
-    /* Default / In-Progress Status Badge */
-    .status-badge { background: #dcfce7; color: #15803d; border: 1px solid #86efac; padding: 6px 14px; border-radius: 30px; font-size: 12px; font-weight: 800; display: inline-flex; align-items: center; gap: 8px; transition: all 0.3s ease; }
-    .status-dot { width: 8px; height: 8px; background-color: #22c55e; border-radius: 50%; animation: pulse 1.5s infinite; }
-    
-    /* Dynamic Status Colors */
-    .status-badge.ready { background: #dbeafe; color: #1e40af; border-color: #93c5fd; }
-    .status-badge.ready .status-dot { background-color: #3b82f6; }
-    
-    .status-badge.pending { background: #fef3c7; color: #92400e; border-color: #fde68a; }
-    .status-badge.pending .status-dot { background-color: #f59e0b; }
+    body {
+      background-color: var(--bg);
+      color: var(--text-main);
+      display: flex;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 16px;
+    }
 
-    .status-badge.error { background: #fee2e2; color: #991b1b; border-color: #fca5a5; }
-    .status-badge.error .status-dot { background-color: #ef4444; animation: none; }
+    .container {
+      width: 100%;
+      max-width: 480px;
+      margin: 0 auto;
+    }
 
-    @keyframes pulse { 0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); } 70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(34, 197, 94, 0); } 100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); } }
-    
-    .call-btn-container { margin-top: 25px; display: flex; gap: 10px; }
-    .call-btn { flex: 1; display: flex; align-items: center; justify-content: center; gap: 10px; background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); color: #ffffff; padding: 16px; border-radius: 12px; text-decoration: none; font-weight: 800; font-size: 15px; transition: opacity 0.2s; }
-    .call-btn:hover { opacity: 0.95; }
-    
-    .copy-btn { background: #f1f5f9; border: 1px solid #cbd5e1; color: #475569; padding: 0 16px; border-radius: 12px; cursor: pointer; font-weight: 700; font-size: 13px; display: flex; align-items: center; justify-content: center; gap: 6px; }
-    .copy-btn:hover { background: #e2e8f0; }
+    .header-card {
+      background: var(--card-bg);
+      border-radius: 16px;
+      padding: 20px;
+      text-align: center;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+      border: 1px solid var(--border);
+      margin-bottom: 16px;
+    }
+
+    .brand-title {
+      font-size: 20px;
+      font-weight: 800;
+      color: var(--primary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+
+    .subtitle {
+      font-size: 13px;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .vehicle-card {
+      background: var(--primary-dark);
+      color: #ffffff;
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 16px;
+      box-shadow: 0 10px 15px -3px rgba(30, 41, 59, 0.2);
+    }
+
+    .vehicle-reg {
+      font-size: 28px;
+      font-weight: 900;
+      letter-spacing: 1px;
+      color: #ffffff;
+      text-transform: uppercase;
+    }
+
+    .customer-name {
+      font-size: 15px;
+      color: #94a3b8;
+      margin-top: 2px;
+      font-weight: 500;
+    }
+
+    .details-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .detail-item {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .detail-label {
+      font-size: 11px;
+      color: #94a3b8;
+      text-transform: uppercase;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+
+    .detail-value {
+      font-size: 14px;
+      font-weight: 700;
+      color: #ffffff;
+      margin-top: 2px;
+    }
+
+    .status-card {
+      background: var(--card-bg);
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+      border: 1px solid var(--border);
+      margin-bottom: 16px;
+    }
+
+    .status-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .status-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+
+    .status-badge {
+      background: #eff6ff;
+      color: var(--accent);
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    .notes-box {
+      background: #f1f5f9;
+      border-radius: 12px;
+      padding: 14px;
+      font-size: 13px;
+      color: var(--text-main);
+      line-height: 1.5;
+      border-left: 4px solid var(--accent);
+      margin-bottom: 16px;
+    }
+
+    .call-btn-container {
+      display: flex;
+      gap: 8px;
+    }
+
+    .call-btn {
+      flex: 1;
+      background: var(--primary);
+      color: #ffffff;
+      text-decoration: none;
+      padding: 14px;
+      border-radius: 12px;
+      font-weight: 800;
+      font-size: 14px;
+      text-align: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: background 0.2s;
+    }
+
+    .call-btn:hover {
+      background: #1d4ed8;
+    }
+
+    .wa-btn {
+      background: #25D366;
+      color: #ffffff;
+      padding: 0 16px;
+      border-radius: 12px;
+      text-decoration: none;
+      font-weight: 800;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: opacity 0.2s;
+    }
+
+    .wa-btn:hover {
+      opacity: 0.9;
+    }
+
+    .loading-screen, .error-screen {
+      background: var(--card-bg);
+      border-radius: 16px;
+      padding: 40px 20px;
+      text-align: center;
+      border: 1px solid var(--border);
+    }
+
+    .spinner {
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid var(--accent);
+      border-radius: 50%;
+      width: 36px;
+      height: 36px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 16px;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .hidden {
+      display: none;
+    }
   </style>
 </head>
 <body>
 
-  <div class="card">
-    <div class="header">
-      <div class="live-indicator"><span class="live-dot"></span> LIVE</div>
-      <h1><i class="fa-solid fa-car-side"></i> OMODA & JAECOO HATFIELD</h1>
-      <p><i class="fa-solid fa-bolt"></i> Live Service Tracker</p>
+  <div class="container">
+    
+    <!-- HEADER -->
+    <div class="header-card">
+      <div class="brand-title">Potgieter Auto</div>
+      <div class="subtitle">Live Service & Repair Status</div>
     </div>
 
-    <div class="card-body">
-      <div class="info-list">
+    <!-- LOADING SCREEN -->
+    <div id="loading" class="loading-screen">
+      <div class="spinner"></div>
+      <p style="font-size: 14px; color: var(--text-muted); font-weight: 600;">Fetching live status...</p>
+    </div>
+
+    <!-- ERROR SCREEN -->
+    <div id="error-box" class="error-screen hidden">
+      <i class="fa-solid fa-circle-exclamation" style="font-size: 32px; color: var(--warning); margin-bottom: 12px;"></i>
+      <h3 style="font-size: 16px; font-weight: 800; margin-bottom: 6px;" id="error-title">Vehicle Not Found</h3>
+      <p style="font-size: 13px; color: var(--text-muted);" id="error-msg">Please double-check the registration number or link provided.</p>
+    </div>
+
+    <!-- MAIN TRACKER CONTENT -->
+    <div id="tracker-content" class="hidden">
+      
+      <!-- VEHICLE DETAILS CARD -->
+      <div class="vehicle-card">
+        <div class="vehicle-reg" id="display-reg">---</div>
+        <div class="customer-name" id="display-name">Valued Customer</div>
         
-        <div class="info-row">
-          <span class="label"><i class="fa-solid fa-id-card"></i> Registration Nr</span>
-          <span class="value" id="reg-nr">Loading...</span>
+        <div class="details-grid">
+          <div class="detail-item">
+            <span class="detail-label">Make & Model</span>
+            <span class="detail-value" id="display-model">---</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Technician</span>
+            <span class="detail-value" id="display-tech">---</span>
+          </div>
         </div>
-
-        <div class="info-row">
-          <span class="label"><i class="fa-solid fa-user"></i> Customer Name</span>
-          <span class="value" id="cust-name">Loading...</span>
-        </div>
-
-        <div class="info-row">
-          <span class="label"><i class="fa-brands fa-whatsapp" style="color:#25D366;"></i> WhatsApp</span>
-          <span class="value" id="cust-whatsapp">Loading...</span>
-        </div>
-
-        <div class="info-row">
-          <span class="label"><i class="fa-solid fa-car"></i> Vehicle Model</span>
-          <span class="value" id="vehicle-model">Loading...</span>
-        </div>
-
-        <div class="info-row">
-          <span class="label"><i class="fa-solid fa-user-gear"></i> Technician</span>
-          <span class="value" id="tech-assigned">Loading...</span>
-        </div>
-
-        <div class="info-row">
-          <span class="label"><i class="fa-solid fa-gauge-high"></i> Current Status</span>
-          <span class="status-badge" id="status-badge">
-            <span class="status-dot"></span> <span id="current-status">Loading...</span>
-          </span>
-        </div>
-
       </div>
 
-      <div class="call-btn-container">
-        <!-- Strictly formatted link to force correct phone app dial string -->
-        <a href="tel:0120023088" id="dial-link" class="call-btn">
-          <i class="fa-solid fa-phone"></i> CALL 012 002 3088
-        </a>
-        <button type="button" class="copy-btn" onclick="copyNumber()" id="copy-btn">
-          <i class="fa-regular fa-copy"></i> Copy
-        </button>
+      <!-- STATUS CARD -->
+      <div class="status-card">
+        <div class="status-header">
+          <span class="status-title">Current Status</span>
+          <span class="status-badge" id="display-status">IN PROGRESS</span>
+        </div>
+
+        <div class="notes-box" id="display-notes">
+          Your vehicle is currently being serviced. We will update notes as progress is made.
+        </div>
+
+        <div class="call-btn-container">
+          <a href="tel:0120023088" class="call-btn">
+            <i class="fa-solid fa-phone"></i> CALL WORKSHOP
+          </a>
+          <a href="#" id="wa-share-btn" target="_blank" rel="noopener" class="wa-btn hidden">
+            <i class="fa-brands fa-whatsapp"></i> WhatsApp
+          </a>
+        </div>
       </div>
+
     </div>
+
   </div>
 
   <script>
-    const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTv3NaMRF2nGAcEb9fP0EV2bpaonpMKdhvTf8goGCAWhq9GfpkQG1_AqbemXkOEbJio2mk_YUgQs6-W/pub?gid=0&single=true&output=csv';
-    const REFRESH_INTERVAL_MS = 30000;
+    // CSV URL generated from Google Sheets Publish to Web
+    const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT17XstJ412LzJ9zC4N_L3N6IeM8-1pLp0xI75L-J1vE9v4W9/pub?output=csv';
 
-    const urlParams = new URLSearchParams(window.location.search);
-    const rawReg = urlParams.get('reg') || '';
-    const cleanTargetReg = rawReg.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
-
-    function copyNumber() {
-      navigator.clipboard.writeText('0120023088').then(() => {
-        const btn = document.getElementById('copy-btn');
-        btn.innerHTML = '<i class="fa-solid fa-check"></i> Copied';
-        setTimeout(() => {
-          btn.innerHTML = '<i class="fa-regular fa-copy"></i> Copy';
-        }, 2000);
-      });
+    function getQueryParam(param) {
+      const urlParams = new URLSearchParams(window.location.search);
+      return urlParams.get(param);
     }
 
-    function updateStatusBadge(statusText) {
-      const badge = document.getElementById('status-badge');
-      badge.className = 'status-badge'; 
-      
-      const textUpper = (statusText || '').toUpperCase();
-      if (textUpper.includes('READY') || textUpper.includes('COMPLETE') || textUpper.includes('COLLECT')) {
-        badge.classList.add('ready');
-      } else if (textUpper.includes('WAITING') || textUpper.includes('PENDING') || textUpper.includes('HOLD')) {
-        badge.classList.add('pending');
-      } else if (textUpper.includes('NOT FOUND') || textUpper.includes('ERROR')) {
-        badge.classList.add('error');
-      }
-    }
-
-    // Helper to safely fetch field content by flexible key names or fallback column index
-    function getFieldValue(row, possibleKeys, fallbackIndex) {
-      for (const key of possibleKeys) {
-        const matchingKey = Object.keys(row).find(k => k.trim().toLowerCase() === key.toLowerCase());
-        if (matchingKey && row[matchingKey]) {
-          return row[matchingKey].trim();
-        }
-      }
-      // Fallback to array index if named key isn't found
-      const values = Object.values(row);
-      return values[fallbackIndex] ? values[fallbackIndex].trim() : '';
+    function cleanReg(str) {
+      if (!str) return '';
+      // Strips spaces, hyphens, non-alphanumeric chars, converts to UPPERCASE
+      return str.toString().replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
     }
 
     function fetchServiceData() {
-      if (!cleanTargetReg) {
-        document.getElementById('reg-nr').textContent = 'No Reg Provided';
-        document.getElementById('cust-name').textContent = '--';
-        document.getElementById('cust-whatsapp').textContent = '--';
-        document.getElementById('vehicle-model').textContent = '--';
-        document.getElementById('tech-assigned').textContent = '--';
-        document.getElementById('current-status').textContent = 'N/A';
-        updateStatusBadge('ERROR');
+      const targetRegParam = getQueryParam('reg');
+
+      if (!targetRegParam) {
+        showError('No Registration Provided', 'Please click the tracking link sent via WhatsApp.');
         return;
       }
 
-      Papa.parse(SHEET_CSV_URL, {
+      // Clean the search parameter from the URL
+      const cleanSearchReg = cleanReg(targetRegParam);
+
+      Papa.parse(CSV_URL, {
         download: true,
-        header: true, // Use named columns to prevent breaks when columns move
+        header: true,
         skipEmptyLines: true,
         complete: function(results) {
           const rows = results.data;
-          
-          const matchedRow = rows.find(row => {
-            const regValue = getFieldValue(row, ['Registration Nr', 'Registration', 'Reg', 'Reg Nr', 'Plate'], 0);
-            const rowReg = regValue.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
-            return rowReg === cleanTargetReg;
-          });
+          let matchedRow = null;
+
+          // Loop through rows and do space-proof, case-insensitive comparison
+          for (let i = 0; i < rows.length; i++) {
+            const row = rows[i];
+            const rawSheetReg = row['REG'] || row['Reg'] || row['reg'] || '';
+            const cleanSheetReg = cleanReg(rawSheetReg);
+
+            if (cleanSheetReg === cleanSearchReg) {
+              matchedRow = row;
+              break;
+            }
+          }
 
           if (matchedRow) {
-            const displayReg = getFieldValue(matchedRow, ['Registration Nr', 'Registration', 'Reg', 'Reg Nr', 'Plate'], 0) || rawReg;
-            const custName = getFieldValue(matchedRow, ['Customer Name', 'Customer', 'Name'], 1) || '--';
-            const rawPhone = getFieldValue(matchedRow, ['WhatsApp', 'Phone', 'Cell', 'Mobile', 'Contact'], 2) || '';
-            const model = getFieldValue(matchedRow, ['Vehicle Model', 'Model', 'Vehicle'], 3) || '--';
-            const tech = getFieldValue(matchedRow, ['Technician', 'Tech', 'Assigned Tech'], 4) || '--';
-            const status = getFieldValue(matchedRow, ['Current Status', 'Status', 'State'], 6) || 'CHECKED IN';
-
-            document.getElementById('reg-nr').textContent = displayReg;
-            document.getElementById('cust-name').textContent = custName;
-            
-            // Format phone number for WhatsApp international standard (+27 SA country code)
-            let cleanPhone = rawPhone.replace(/[^0-9]/g, '');
-            if (cleanPhone.startsWith('0') && cleanPhone.length === 10) {
-              cleanPhone = '27' + cleanPhone.substring(1);
-            }
-
-            if (cleanPhone) {
-              document.getElementById('cust-whatsapp').innerHTML = `<a href="https://wa.me/${cleanPhone}" target="_blank" rel="noopener">${rawPhone} <i class="fa-solid fa-arrow-up-right-from-square" style="font-size:10px;"></i></a>`;
-            } else {
-              document.getElementById('cust-whatsapp').textContent = '--';
-            }
-
-            document.getElementById('vehicle-model').textContent = model;
-            document.getElementById('tech-assigned').textContent = tech;
-            document.getElementById('current-status').textContent = status;
-            updateStatusBadge(status);
+            renderTracker(matchedRow);
           } else {
-            document.getElementById('reg-nr').textContent = rawReg;
-            document.getElementById('cust-name').textContent = 'Vehicle Not Found';
-            document.getElementById('cust-whatsapp').textContent = '--';
-            document.getElementById('vehicle-model').textContent = '--';
-            document.getElementById('tech-assigned').textContent = '--';
-            document.getElementById('current-status').textContent = 'NOT FOUND';
-            updateStatusBadge('NOT FOUND');
+            showError('Vehicle Not Found', `No active record found for "${targetRegParam.toUpperCase()}". It may take up to 45 seconds for newly added rows to sync.`);
           }
         },
         error: function(err) {
-          console.error(err);
-          document.getElementById('cust-name').textContent = 'Error Loading Data';
-          updateStatusBadge('ERROR');
+          showError('Connection Error', 'Unable to fetch service updates. Please try again shortly.');
         }
       });
     }
 
-    fetchServiceData();
-    setInterval(fetchServiceData, REFRESH_INTERVAL_MS);
-  </script>
+    function renderTracker(data) {
+      document.getElementById('loading').classList.add('hidden');
+      document.getElementById('error-box').classList.add('hidden');
+      document.getElementById('tracker-content').classList.remove('hidden');
 
+      const regVal = data['REG'] || data['Reg'] || '---';
+      const nameVal = data['NAME'] || data['Name'] || 'Valued Customer';
+      const modelVal = data['VEHICLE'] || data['Vehicle'] || data['MODEL'] || '---';
+      const techVal = data['TECHNICIAN'] || data['Technician'] || 'Assigned Tech';
+      const statusVal = data['STATUS'] || data['Status'] || 'In Workshop';
+      const notesVal = data['NOTES'] || data['Notes'] || 'Work is currently underway on your vehicle.';
+      const phoneVal = data['PHONE'] || data['Phone'] || data['WHATSAPP'] || '';
+
+      document.getElementById('display-reg').textContent = regVal.toUpperCase();
+      document.getElementById('display-name').textContent = nameVal;
+      document.getElementById('display-model').textContent = modelVal;
+      document.getElementById('display-tech').textContent = techVal;
+      document.getElementById('display-status').textContent = statusVal;
+      document.getElementById('display-notes').textContent = notesVal;
+
+      // Update WhatsApp Share button if phone exists
+      const waBtn = document.getElementById('wa-share-btn');
+      if (phoneVal && waBtn) {
+        let cleanPhone = phoneVal.toString().replace(/[^0-9]/g, '');
+        if (cleanPhone.startsWith('0')) {
+          cleanPhone = '27' + cleanPhone.substring(1);
+        }
+        const currentUrl = window.location.href;
+        const msg = encodeURIComponent(`Hello ${nameVal}, here is your live vehicle service tracking link for ${regVal}: ${currentUrl}`);
+        waBtn.href = `https://wa.me/${cleanPhone}?text=${msg}`;
+        waBtn.classList.remove('hidden');
+      }
+    }
+
+    function showError(title, message) {
+      document.getElementById('loading').classList.add('hidden');
+      document.getElementById('tracker-content').classList.add('hidden');
+      
+      document.getElementById('error-title').textContent = title;
+      document.getElementById('error-msg').textContent = message;
+      document.getElementById('error-box').classList.remove('hidden');
+    }
+
+    // Initialize on page load
+    window.addEventListener('DOMContentLoaded', fetchServiceData);
+  </script>
 </body>
 </html>
