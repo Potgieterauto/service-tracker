@@ -3,350 +3,260 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vehicle Service Status | Omoda & Jaecoo Hatfield</title>
+    <title>OMODA & JAECOO HATFIELD - Live Vehicle Service Tracker</title>
     <style>
-        :root {
-            --primary: #111827;
-            --accent: #2563eb;
-            --bg: #f3f4f6;
-            --card-bg: #ffffff;
-            --text: #1f2937;
-            --muted: #6b7280;
-            --success: #16a34a;
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: var(--bg);
-            color: var(--text);
-            margin: 0;
-            padding: 20px;
+            background-color: #f4f6f8;
+            color: #333;
             display: flex;
             justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
         }
 
         .container {
-            width: 100%;
-            max-width: 500px;
-            background: var(--card-bg);
+            background-color: #ffffff;
             border-radius: 12px;
-            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
-            padding: 24px;
-            box-sizing: border-box;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            width: 100%;
+            max-width: 600px;
+            padding: 30px;
         }
 
         .header {
             text-align: center;
-            border-bottom: 2px solid #e5e7eb;
-            padding-bottom: 16px;
-            margin-bottom: 20px;
+            margin-bottom: 25px;
+            border-bottom: 1px solid #eeeeee;
+            padding-bottom: 20px;
         }
 
         .header h1 {
-            font-size: 1.25rem;
-            margin: 0;
-            color: var(--primary);
+            font-size: 22px;
+            font-weight: 700;
+            color: #0b1e36;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
             text-transform: uppercase;
-            letter-spacing: 0.05em;
         }
 
         .header p {
-            margin: 4px 0 0 0;
-            font-size: 0.875rem;
-            color: var(--muted);
+            font-size: 14px;
+            color: #666;
         }
 
-        .info-card {
-            background-color: #f8fafc;
-            border: 1px solid #e2e8f0;
-            border-radius: 8px;
-            padding: 16px;
-            margin-bottom: 24px;
+        .card {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
         }
 
         .info-row {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 8px;
-            font-size: 0.95rem;
-        }
-
-        .info-row:last-child {
-            margin-bottom: 0;
+            align-items: center;
+            padding: 12px 16px;
+            background-color: #f8fafc;
+            border-radius: 8px;
         }
 
         .info-label {
-            color: var(--muted);
+            font-size: 13px;
+            color: #64748b;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
         .info-value {
+            font-size: 15px;
+            color: #0f172a;
             font-weight: 600;
         }
 
-        .timeline {
-            position: relative;
-            padding-left: 20px;
-            margin-top: 20px;
+        .status-badge {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 700;
+            text-transform: uppercase;
+            background-color: #e2e8f0;
+            color: #475569;
         }
 
-        .timeline-item {
-            position: relative;
-            padding-bottom: 24px;
-            padding-left: 16px;
-            border-left: 2px solid #e5e7eb;
-        }
-
-        .timeline-item:last-child {
-            border-left: 2px solid transparent;
-            padding-bottom: 0;
-        }
-
-        .timeline-icon {
-            position: absolute;
-            left: -9px;
-            top: 0;
-            width: 16px;
-            height: 16px;
-            border-radius: 50%;
-            background-color: #d1d5db;
-        }
-
-        .timeline-item.active .timeline-icon {
-            background-color: var(--accent);
-            box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.2);
-        }
-
-        .timeline-item.completed .timeline-icon {
-            background-color: var(--success);
-        }
-
-        .timeline-title {
-            font-size: 0.95rem;
-            font-weight: 600;
-            margin: 0 0 4px 0;
-            color: #9ca3af;
-        }
-
-        .timeline-item.active .timeline-title {
-            color: var(--accent);
-        }
-
-        .timeline-item.completed .timeline-title {
-            color: var(--text);
-        }
-
-        .notes-box {
-            margin-top: 20px;
-            background-color: #fffbe0;
-            border-left: 4px solid #eab308;
-            padding: 12px;
-            border-radius: 4px;
-            font-size: 0.875rem;
-        }
-
-        .error-card {
+        .message-box {
             text-align: center;
-            padding: 40px 20px;
+            padding: 30px 20px;
         }
 
-        .error-card h2 {
+        .error-title {
             color: #dc2626;
+            font-size: 16px;
+            font-weight: 600;
             margin-bottom: 8px;
+        }
+
+        .error-sub {
+            color: #64748b;
+            font-size: 14px;
         }
 
         .loading {
             text-align: center;
-            padding: 40px;
-            color: var(--muted);
+            color: #64748b;
+            font-size: 15px;
+            padding: 40px 0;
         }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <div class="header">
-        <h1>Omoda & Jaecoo Hatfield</h1>
-        <p>Live Workshop Tracker</p>
+    <div class="container">
+        <div class="header">
+            <h1>Omoda & Jaecoo Hatfield</h1>
+            <p>Live Vehicle Service Tracker</p>
+        </div>
+
+        <div id="content">
+            <div class="loading">Loading vehicle details...</div>
+        </div>
     </div>
 
-    <div id="content">
-        <div class="loading">Loading vehicle status...</div>
-    </div>
-</div>
+    <script>
+        // Your published Google Sheets CSV URL
+        const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTv3NaMRF2nGAcEb9fP0EV2bpaonpMKdhvTf8goGCAWhq9GfpkQG1_AqbemXkOEbJio2mk_YUgQs6-W/pub?gid=0&single=true&output=csv';
 
-<script>
-    const GOOGLE_SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/1tIxq1MR-aSYjvvS_A2OmtUzKQhVnvcryjYqb51K2U3Y/gviz/tq?tqx=out:csv';
-
-    const stages = [
-        "1. Vehicle Checked In",
-        "2. In Bay - Inspection/Diagnostic",
-        "3. Work in Progress",
-        "4. Awaiting Parts / Customer Approval",
-        "5. Quality Control & Wash Bay",
-        "6. Ready for Collection"
-    ];
-
-    async function fetchStatus() {
-        const contentDiv = document.getElementById('content');
-
-        const urlParams = new URLSearchParams(window.location.search);
-        const rawReg = urlParams.get('reg') || '';
-
-        if (!rawReg) {
-            contentDiv.innerHTML = `
-                <div class="error-card">
-                    <h2>No Registration Provided</h2>
-                    <p>Please check your link and try again.</p>
-                </div>`;
-            return;
-        }
-
-        // Clean query registration number
-        const targetReg = rawReg.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
-
-        try {
-            const response = await fetch(GOOGLE_SHEET_CSV_URL);
-            const csvText = await response.text();
-            
-            // Check if sheet returned an HTML login page instead of CSV
-            if (csvText.includes('<!DOCTYPE html>') || csvText.includes('<html')) {
-                contentDiv.innerHTML = `
-                    <div class="error-card">
-                        <h2>Permission Required</h2>
-                        <p>Please ensure your Google Sheet General Access is set to <strong>"Anyone with the link can view"</strong>.</p>
-                    </div>`;
-                return;
-            }
-
-            const rows = parseCSV(csvText);
-
-            // Find matching row (stripping all quotes, spaces, special chars)
-            const matchingRow = rows.find(r => {
-                if (!r || !r[0]) return false;
-                const sheetReg = r[0].replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
-                return sheetReg === targetReg;
-            });
-
-            if (!matchingRow) {
-                contentDiv.innerHTML = `
-                    <div class="error-card">
-                        <h2>Vehicle Not Found</h2>
-                        <p>No active service found for registration: <strong>${escapeHtml(rawReg)}</strong></p>
-                    </div>`;
-                return;
-            }
-
-            // Extract data (clean quotes out of strings)
-            const clean = (val) => (val || '').replace(/^"|"$/g, '').trim();
-
-            const regNo = clean(matchingRow[0]) || 'N/A';
-            const clientName = clean(matchingRow[1]) || 'Valued Customer';
-            const model = clean(matchingRow[3]) || 'Vehicle';
-            const technician = clean(matchingRow[4]) || 'Assigned Tech';
-            const estTime = clean(matchingRow[5]) || 'Pending';
-            const currentStatus = clean(matchingRow[6]);
-            const notes = clean(matchingRow[7]);
-
-            // Determine status stage
-            let currentStageIndex = stages.findIndex(s => s.toLowerCase() === currentStatus.toLowerCase());
-            if (currentStageIndex === -1) {
-                currentStageIndex = stages.findIndex(s => currentStatus.toLowerCase().includes(s.substring(3).toLowerCase()));
-            }
-
-            // Render Timeline
-            let timelineHtml = '';
-            stages.forEach((stage, index) => {
-                let stageClass = '';
-                if (index < currentStageIndex) stageClass = 'completed';
-                else if (index === currentStageIndex) stageClass = 'active';
-
-                const stageLabel = stage.replace(/^\d+\.\s*/, '');
-
-                timelineHtml += `
-                    <div class="timeline-item ${stageClass}">
-                        <div class="timeline-icon"></div>
-                        <div class="timeline-title">${escapeHtml(stageLabel)}</div>
-                    </div>`;
-            });
-
-            let notesHtml = '';
-            if (notes !== '') {
-                notesHtml = `
-                    <div class="notes-box">
-                        <strong>Workshop Note:</strong> ${escapeHtml(notes)}
-                    </div>`;
-            }
-
-            contentDiv.innerHTML = `
-                <div class="info-card">
-                    <div class="info-row">
-                        <span class="info-label">Customer</span>
-                        <span class="info-value">${escapeHtml(clientName)}</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">Vehicle</span>
-                        <span class="info-value">${escapeHtml(model)} (${escapeHtml(regNo)})</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">Technician</span>
-                        <span class="info-value">${escapeHtml(technician)}</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">Est. Completion</span>
-                        <span class="info-value">${escapeHtml(estTime)}</span>
-                    </div>
-                </div>
-
-                <h3 style="font-size: 1rem; margin-bottom: 12px;">Service Progress</h3>
-                <div class="timeline">
-                    ${timelineHtml}
-                </div>
-
-                ${notesHtml}
-            `;
-
-        } catch (error) {
-            console.error(error);
-            contentDiv.innerHTML = `
-                <div class="error-card">
-                    <h2>Error Loading Status</h2>
-                    <p>Unable to fetch live tracking data. Please refresh the page.</p>
-                </div>`;
-        }
-    }
-
-    function parseCSV(text) {
-        const lines = text.split(/\r?\n/);
-        return lines.map(line => {
+        // Simple CSV Parser handling quotes and commas
+        function parseCSV(text) {
+            const lines = text.split(/\r\n|\n/);
             const result = [];
-            let current = '';
-            let inQuotes = false;
-            for (let i = 0; i < line.length; i++) {
-                const char = line[i];
-                if (char === '"') {
-                    inQuotes = !inQuotes;
-                } else if (char === ',' && !inQuotes) {
-                    result.push(current);
-                    current = '';
-                } else {
-                    current += char;
+            for (let i = 0; i < lines.length; i++) {
+                if (!lines[i].trim()) continue;
+                const row = [];
+                let insideQuotes = false;
+                let entry = '';
+                for (let char of lines[i]) {
+                    if (char === '"') {
+                        insideQuotes = !insideQuotes;
+                    } else if (char === ',' && !insideQuotes) {
+                        row.push(entry.trim().replace(/^"|"$/g, ''));
+                        entry = '';
+                    } else {
+                        entry += char;
+                    }
                 }
+                row.push(entry.trim().replace(/^"|"$/g, ''));
+                result.push(row);
             }
-            result.push(current);
             return result;
-        });
-    }
+        }
 
-    function escapeHtml(str) {
-        return String(str)
-            .replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;")
-            .replace(/"/g, "&quot;")
-            .replace(/'/g, "&#039;");
-    }
+        // Clean string for accurate comparisons
+        function cleanString(str) {
+            return str ? str.toString().toUpperCase().replace(/[^A-Z0-9]/g, '') : '';
+        }
 
-    fetchStatus();
-</script>
+        async function fetchVehicleData() {
+            const contentDiv = document.getElementById('content');
+            
+            // Get registration from URL parameter
+            const urlParams = new URLSearchParams(window.location.search);
+            const targetReg = urlParams.get('reg');
+
+            if (!targetReg) {
+                contentDiv.innerHTML = `
+                    <div class="message-box">
+                        <div class="error-title">No Registration Provided</div>
+                        <div class="error-sub">Please use a valid tracking link containing a vehicle registration number.</div>
+                    </div>
+                `;
+                return;
+            }
+
+            try {
+                const response = await fetch(CSV_URL);
+                if (!response.ok) {
+                    throw new Error('Failed to fetch data from database');
+                }
+
+                const csvText = await response.text();
+                const rows = parseCSV(csvText);
+
+                if (rows.length < 2) {
+                    throw new Error('Database is empty or missing headers');
+                }
+
+                const headers = rows[0].map(h => cleanString(h));
+                const cleanedTargetReg = cleanString(targetReg);
+
+                // Find matching row by checking registration column or any cell matching reg
+                let matchedRow = null;
+                for (let i = 1; i < rows.length; i++) {
+                    const row = rows[i];
+                    for (let cell of row) {
+                        if (cleanString(cell) === cleanedTargetReg) {
+                            matchedRow = {};
+                            headers.forEach((header, index) => {
+                                matchedRow[header] = row[index] || 'N/A';
+                            });
+                            break;
+                        }
+                    }
+                    if (matchedRow) break;
+                }
+
+                if (matchedRow) {
+                    displayVehicleInfo(matchedRow, targetReg);
+                } else {
+                    contentDiv.innerHTML = `
+                        <div class="message-box">
+                            <div class="error-title">No vehicle found for registration: <span style="color:#1e293b;">${targetReg.toUpperCase()}</span></div>
+                            <div class="error-sub">Please check back shortly or call your service advisor.</div>
+                        </div>
+                    `;
+                }
+
+            } catch (error) {
+                console.error(error);
+                contentDiv.innerHTML = `
+                    <div class="message-box">
+                        <div class="error-title">Unable to load tracker data</div>
+                        <div class="error-sub">Please try refreshing the page or contact support.</div>
+                    </div>
+                `;
+            }
+        }
+
+        function displayVehicleInfo(data, originalReg) {
+            const contentDiv = document.getElementById('content');
+            
+            // Extract fields dynamically or fall back gracefully
+            let html = '<div class="card">';
+            
+            for (const [key, value] of Object.entries(data)) {
+                if (!key || value === 'N/A') continue;
+                html += `
+                    <div class="info-row">
+                        <span class="info-label">${key}</span>
+                        <span class="info-value">${value}</span>
+                    </div>
+                `;
+            }
+            
+            html += '</div>';
+            contentDiv.innerHTML = html;
+        }
+
+        // Run on load
+        fetchVehicleData();
+    </script>
 </body>
 </html>
