@@ -13,26 +13,50 @@
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Roboto, sans-serif; }
     body { background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; color: #334155; }
     .card { background: #ffffff; border-radius: 20px; box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3); max-width: 550px; width: 100%; overflow: hidden; }
-    .header { background: linear-gradient(135deg, #0b1f3a 0%, #1e3a8a 100%); color: #ffffff; padding: 30px 20px; text-align: center; }
+    .header { background: linear-gradient(135deg, #0b1f3a 0%, #1e3a8a 100%); color: #ffffff; padding: 30px 20px; text-align: center; position: relative; }
     .header h1 { font-size: 22px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 6px; display: flex; align-items: center; justify-content: center; gap: 10px; }
     .header p { color: #93c5fd; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1.5px; }
+    
+    /* Auto-refresh indicator */
+    .live-indicator { position: absolute; top: 15px; right: 15px; background: rgba(255, 255, 255, 0.1); padding: 4px 10px; border-radius: 20px; font-size: 10px; color: #93c5fd; font-weight: 700; display: flex; align-items: center; gap: 6px; }
+    .live-dot { width: 6px; height: 6px; background-color: #38bdf8; border-radius: 50%; animation: pulse-live 2s infinite; }
+    @keyframes pulse-live { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
+
     .card-body { padding: 25px 20px; }
     .info-list { display: flex; flex-direction: column; gap: 12px; }
     .info-row { background-color: #f8fafc; border: 1px solid #e2e8f0; padding: 14px 18px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; }
     .label { font-size: 11px; font-weight: 800; color: #64748b; letter-spacing: 0.8px; display: flex; align-items: center; gap: 8px; text-transform: uppercase; }
     .label i { font-size: 14px; color: #3b82f6; }
-    .value { font-size: 14px; font-weight: 700; color: #0f172a; }
-    .status-badge { background: #dcfce7; color: #15803d; border: 1px solid #86efac; padding: 6px 14px; border-radius: 30px; font-size: 12px; font-weight: 800; display: inline-flex; align-items: center; gap: 8px; }
+    .value { font-size: 14px; font-weight: 700; color: #0f172a; text-align: right; }
+    .value a { color: #16a34a; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
+    .value a:hover { text-decoration: underline; }
+
+    /* Default / In-Progress Status Badge */
+    .status-badge { background: #dcfce7; color: #15803d; border: 1px solid #86efac; padding: 6px 14px; border-radius: 30px; font-size: 12px; font-weight: 800; display: inline-flex; align-items: center; gap: 8px; transition: all 0.3s ease; }
     .status-dot { width: 8px; height: 8px; background-color: #22c55e; border-radius: 50%; animation: pulse 1.5s infinite; }
+    
+    /* Dynamic Status Colors */
+    .status-badge.ready { background: #dbeafe; color: #1e40af; border-color: #93c5fd; }
+    .status-badge.ready .status-dot { background-color: #3b82f6; }
+    
+    .status-badge.pending { background: #fef3c7; color: #92400e; border-color: #fde68a; }
+    .status-badge.pending .status-dot { background-color: #f59e0b; }
+
+    .status-badge.error { background: #fee2e2; color: #991b1b; border-color: #fca5a5; }
+    .status-badge.error .status-dot { background-color: #ef4444; animation: none; }
+
     @keyframes pulse { 0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); } 70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(34, 197, 94, 0); } 100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); } }
+    
     .call-btn-container { margin-top: 25px; }
-    .call-btn { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); color: #ffffff; padding: 16px; border-radius: 12px; text-decoration: none; font-weight: 800; font-size: 15px; }
+    .call-btn { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); color: #ffffff; padding: 16px; border-radius: 12px; text-decoration: none; font-weight: 800; font-size: 15px; transition: opacity 0.2s; }
+    .call-btn:hover { opacity: 0.95; }
   </style>
 </head>
 <body>
 
   <div class="card">
     <div class="header">
+      <div class="live-indicator"><span class="live-dot"></span> LIVE</div>
       <h1><i class="fa-solid fa-car-side"></i> OMODA & JAECOO HATFIELD</h1>
       <p><i class="fa-solid fa-bolt"></i> Live Service Tracker</p>
     </div>
@@ -67,7 +91,7 @@
 
         <div class="info-row">
           <span class="label"><i class="fa-solid fa-gauge-high"></i> Current Status</span>
-          <span class="status-badge">
+          <span class="status-badge" id="status-badge">
             <span class="status-dot"></span> <span id="current-status">Loading...</span>
           </span>
         </div>
@@ -84,19 +108,38 @@
 
   <script>
     const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTv3NaMRF2nGAcEb9fP0EV2bpaonpMKdhvTf8goGCAWhq9GfpkQG1_AqbemXkOEbJio2mk_YUgQs6-W/pub?gid=0&single=true&output=csv';
+    const REFRESH_INTERVAL_MS = 30000; // Auto-refreshes data every 30 seconds
 
     const urlParams = new URLSearchParams(window.location.search);
     const rawReg = urlParams.get('reg') || '';
     const cleanTargetReg = rawReg.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
 
-    if (!cleanTargetReg) {
-      document.getElementById('reg-nr').textContent = 'No Reg Provided';
-      document.getElementById('cust-name').textContent = '--';
-      document.getElementById('cust-whatsapp').textContent = '--';
-      document.getElementById('vehicle-model').textContent = '--';
-      document.getElementById('tech-assigned').textContent = '--';
-      document.getElementById('current-status').textContent = 'N/A';
-    } else {
+    function updateStatusBadge(statusText) {
+      const badge = document.getElementById('status-badge');
+      badge.className = 'status-badge'; // Reset classes
+      
+      const textUpper = (statusText || '').toUpperCase();
+      if (textUpper.includes('READY') || textUpper.includes('COMPLETE') || textUpper.includes('COLLECT')) {
+        badge.classList.add('ready');
+      } else if (textUpper.includes('WAITING') || textUpper.includes('PENDING') || textUpper.includes('HOLD')) {
+        badge.classList.add('pending');
+      } else if (textUpper.includes('NOT FOUND') || textUpper.includes('ERROR')) {
+        badge.classList.add('error');
+      }
+    }
+
+    function fetchServiceData() {
+      if (!cleanTargetReg) {
+        document.getElementById('reg-nr').textContent = 'No Reg Provided';
+        document.getElementById('cust-name').textContent = '--';
+        document.getElementById('cust-whatsapp').textContent = '--';
+        document.getElementById('vehicle-model').textContent = '--';
+        document.getElementById('tech-assigned').textContent = '--';
+        document.getElementById('current-status').textContent = 'N/A';
+        updateStatusBadge('ERROR');
+        return;
+      }
+
       Papa.parse(SHEET_CSV_URL, {
         download: true,
         header: false,
@@ -104,7 +147,6 @@
         complete: function(results) {
           const rows = results.data;
           
-          // Search row where Column A registration matches ignoring spaces and special chars
           const matchedRow = rows.find(row => {
             const rowReg = (row[0] || '').replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
             return rowReg === cleanTargetReg;
@@ -113,10 +155,22 @@
           if (matchedRow) {
             document.getElementById('reg-nr').textContent = matchedRow[0] || rawReg;
             document.getElementById('cust-name').textContent = matchedRow[1] || '--';
-            document.getElementById('cust-whatsapp').textContent = matchedRow[2] || '--';
+            
+            // Format WhatsApp field into clickable link if a number exists
+            const rawPhone = matchedRow[2] || '';
+            const cleanPhone = rawPhone.replace(/[^0-9]/g, '');
+            if (cleanPhone) {
+              document.getElementById('cust-whatsapp').innerHTML = `<a href="https://wa.me/${cleanPhone}" target="_blank" rel="noopener">${rawPhone} <i class="fa-solid fa-arrow-up-right-from-square" style="font-size:10px;"></i></a>`;
+            } else {
+              document.getElementById('cust-whatsapp').textContent = '--';
+            }
+
             document.getElementById('vehicle-model').textContent = matchedRow[3] || '--';
             document.getElementById('tech-assigned').textContent = matchedRow[4] || '--';
-            document.getElementById('current-status').textContent = matchedRow[6] || 'CHECKED IN';
+            
+            const status = matchedRow[6] || 'CHECKED IN';
+            document.getElementById('current-status').textContent = status;
+            updateStatusBadge(status);
           } else {
             document.getElementById('reg-nr').textContent = rawReg;
             document.getElementById('cust-name').textContent = 'Vehicle Not Found';
@@ -124,14 +178,22 @@
             document.getElementById('vehicle-model').textContent = '--';
             document.getElementById('tech-assigned').textContent = '--';
             document.getElementById('current-status').textContent = 'NOT FOUND';
+            updateStatusBadge('NOT FOUND');
           }
         },
         error: function(err) {
           console.error(err);
           document.getElementById('cust-name').textContent = 'Error Loading Data';
+          updateStatusBadge('ERROR');
         }
       });
     }
+
+    // Initial Fetch
+    fetchServiceData();
+
+    // Polling setup for background live updates
+    setInterval(fetchServiceData, REFRESH_INTERVAL_MS);
   </script>
 
 </body>
