@@ -21,8 +21,10 @@
       --text-main: #0f172a;
       --text-muted: #64748b;
       --border: #e2e8f0;
-      --success: #16a34a;
-      --warning: #d97706;
+      
+      /* Status Colors */
+      --status-bg: #eff6ff;
+      --status-text: #2563eb;
     }
 
     * {
@@ -149,13 +151,14 @@
     }
 
     .status-badge {
-      background: #eff6ff;
-      color: var(--accent);
+      background: var(--status-bg);
+      color: var(--status-text);
       padding: 6px 12px;
       border-radius: 20px;
       font-size: 13px;
       font-weight: 800;
       text-transform: uppercase;
+      transition: all 0.3s ease;
     }
 
     .notes-box {
@@ -172,6 +175,7 @@
     .call-btn-container {
       display: flex;
       gap: 8px;
+      flex-wrap: wrap;
     }
 
     .call-btn {
@@ -193,6 +197,27 @@
 
     .call-btn:hover {
       background: #1d4ed8;
+    }
+
+    .refresh-btn {
+      background: #f1f5f9;
+      color: var(--text-muted);
+      border: 1px solid var(--border);
+      padding: 14px;
+      border-radius: 12px;
+      cursor: pointer;
+      font-weight: 700;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+
+    .refresh-btn:hover {
+      background: #e2e8f0;
+      color: var(--text-main);
     }
 
     .wa-btn {
@@ -238,7 +263,7 @@
     }
 
     .hidden {
-      display: none;
+      display: none !important;
     }
   </style>
 </head>
@@ -300,8 +325,11 @@
           <a href="tel:0120023088" class="call-btn">
             <i class="fa-solid fa-phone"></i> CALL WORKSHOP
           </a>
+          <button class="refresh-btn" id="refresh-btn" onclick="fetchServiceData()">
+            <i class="fa-solid fa-arrows-rotate"></i>
+          </button>
           <a href="#" id="wa-share-btn" target="_blank" rel="noopener" class="wa-btn hidden">
-            <i class="fa-brands fa-whatsapp"></i> WhatsApp
+            <i class="fa-brands fa-whatsapp"></i>
           </a>
         </div>
       </div>
@@ -311,8 +339,8 @@
   </div>
 
   <script>
-    // YOUR PUBLISHED GOOGLE SHEET CSV LINK
-    const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTv3NaMRF2nGAcEb9fP0EV2bpaonpMKdhvTf8goGCAWhq9GfpkQG1_AqbemXkOEbJio2mk_YUgQs6-W/pub?gid=0&single=true&output=csv';
+    // CSV URL from Google Sheets "Publish to Web"
+    const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT17XstJ412LzJ9zC4N_L3N6IeM8-1pLp0xI75L-J1vE9v4W9/pub?output=csv';
 
     function getQueryParam(param) {
       const urlParams = new URLSearchParams(window.location.search);
@@ -324,27 +352,42 @@
       return str.toString().replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
     }
 
-    function getVal(row, possibleKeys, defaultVal = '---') {
-      for (let key of Object.keys(row)) {
-        const cleanKey = key.trim().toUpperCase();
-        if (possibleKeys.includes(cleanKey)) {
-          return row[key] ? row[key].trim() : defaultVal;
-        }
+    function applyStatusColor(statusText) {
+      const badge = document.getElementById('display-status');
+      const text = (statusText || '').toUpperCase();
+
+      if (text.includes('READY') || text.includes('COLLECT') || text.includes('COMPLETE')) {
+        badge.style.setProperty('--status-bg', '#dcfce7');
+        badge.style.setProperty('--status-text', '#15803d');
+      } else if (text.includes('WAITING') || text.includes('PARTS') || text.includes('HOLD') || text.includes('QUOTE')) {
+        badge.style.setProperty('--status-bg', '#fef3c7');
+        badge.style.setProperty('--status-text', '#b45309');
+      } else {
+        // Default In-Progress Style
+        badge.style.setProperty('--status-bg', '#eff6ff');
+        badge.style.setProperty('--status-text', '#2563eb');
       }
-      return defaultVal;
     }
 
     function fetchServiceData() {
       const targetRegParam = getQueryParam('reg');
 
+      // Show spinner during fetch/refresh
+      document.getElementById('loading').classList.remove('hidden');
+      document.getElementById('tracker-content').classList.add('hidden');
+      document.getElementById('error-box').classList.add('hidden');
+
       if (!targetRegParam) {
-        showError('No Registration Provided', 'Please click the tracking link sent via WhatsApp.');
+        showError('No Registration Provided', 'Please click the tracking link sent via WhatsApp or add ?reg=YOURREG to the URL.');
         return;
       }
 
       const cleanSearchReg = cleanReg(targetRegParam);
 
-      Papa.parse(CSV_URL, {
+      // Append cache-busting parameter to bypass aggressive browser caching
+      const cacheBustUrl = `${CSV_URL}&_cb=${new Date().getTime()}`;
+
+      Papa.parse(cacheBustUrl, {
         download: true,
         header: true,
         skipEmptyLines: true,
@@ -354,10 +397,8 @@
 
           for (let i = 0; i < rows.length; i++) {
             const row = rows[i];
-            const rawSheetReg = getVal(row, ['REG', 'REGISTRATION', 'REG NO', 'REGNO', 'LICENSE'], '');
-            const cleanSheetReg = cleanReg(rawSheetReg);
-
-            if (cleanSheetReg === cleanSearchReg) {
+            const rawSheetReg = row['REG'] || row['Reg'] || row['reg'] || '';
+            if (cleanReg(rawSheetReg) === cleanSearchReg) {
               matchedRow = row;
               break;
             }
@@ -366,11 +407,11 @@
           if (matchedRow) {
             renderTracker(matchedRow);
           } else {
-            showError('Vehicle Not Found', `No active record found for "${targetRegParam.toUpperCase()}". Please wait up to 45 seconds if the row was just created.`);
+            showError('Vehicle Not Found', `No active record found for "${targetRegParam.toUpperCase()}". Newly added rows may take up to 1-2 minutes to sync from Google Sheets.`);
           }
         },
-        error: function(err) {
-          showError('Connection Error', 'Unable to connect to Google Sheets. Ensure your sheet is published to the web.');
+        error: function() {
+          showError('Connection Error', 'Unable to fetch service updates. Please check your connection and try again.');
         }
       });
     }
@@ -380,13 +421,13 @@
       document.getElementById('error-box').classList.add('hidden');
       document.getElementById('tracker-content').classList.remove('hidden');
 
-      const regVal = getVal(data, ['REG', 'REGISTRATION', 'REG NO', 'REGNO'], '---');
-      const nameVal = getVal(data, ['NAME', 'CUSTOMER', 'CLIENT'], 'Valued Customer');
-      const modelVal = getVal(data, ['VEHICLE', 'MODEL', 'CAR'], '---');
-      const techVal = getVal(data, ['TECHNICIAN', 'TECH'], 'Assigned Tech');
-      const statusVal = getVal(data, ['STATUS', 'PROGRESS'], 'In Workshop');
-      const notesVal = getVal(data, ['NOTES', 'COMMENTS', 'REMARKS'], 'Work is currently underway on your vehicle.');
-      const phoneVal = getVal(data, ['PHONE', 'WHATSAPP', 'MOBILE', 'CONTACT'], '');
+      const regVal = data['REG'] || data['Reg'] || '---';
+      const nameVal = data['NAME'] || data['Name'] || 'Valued Customer';
+      const modelVal = data['VEHICLE'] || data['Vehicle'] || data['MODEL'] || '---';
+      const techVal = data['TECHNICIAN'] || data['Technician'] || 'Assigned Tech';
+      const statusVal = data['STATUS'] || data['Status'] || 'In Workshop';
+      const notesVal = data['NOTES'] || data['Notes'] || 'Work is currently underway on your vehicle.';
+      const phoneVal = data['PHONE'] || data['Phone'] || data['WHATSAPP'] || '';
 
       document.getElementById('display-reg').textContent = regVal.toUpperCase();
       document.getElementById('display-name').textContent = nameVal;
@@ -395,8 +436,11 @@
       document.getElementById('display-status').textContent = statusVal;
       document.getElementById('display-notes').textContent = notesVal;
 
+      applyStatusColor(statusVal);
+
+      // Update WhatsApp Share button if phone exists
       const waBtn = document.getElementById('wa-share-btn');
-      if (phoneVal && phoneVal !== '---' && waBtn) {
+      if (phoneVal && waBtn) {
         let cleanPhone = phoneVal.toString().replace(/[^0-9]/g, '');
         if (cleanPhone.startsWith('0')) {
           cleanPhone = '27' + cleanPhone.substring(1);
