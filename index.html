@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>OMODA & JAECOO HATFIELD - Live Service Tracker</title>
+  
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   
   <style>
@@ -64,8 +65,8 @@
 
         <div class="info-row">
           <span class="label"><i class="fa-solid fa-gauge-high"></i> Current Status</span>
-          <span class="status-badge" id="current-status">
-            <span class="status-dot"></span> <span id="status-text">Loading...</span>
+          <span class="status-badge">
+            <span class="status-dot"></span> <span id="current-status">Loading...</span>
           </span>
         </div>
 
@@ -80,16 +81,45 @@
   </div>
 
   <script>
-    // Extract registration query parameter from URL (e.g. ?reg=BB00HGGP)
-    const urlParams = new URLSearchParams(window.location.search);
-    const regParam = urlParams.get('reg');
+    const SHEET_CSV_URL = 'YOUR_PUBLISHED_CSV_URL_HERE';
 
-    if (regParam) {
-      document.getElementById('reg-nr').textContent = regParam;
-      
-      // Fetch dynamic spreadsheet data here if connected to Google Sheets API / CSV export
+    const urlParams = new URLSearchParams(window.location.search);
+    const targetReg = (urlParams.get('reg') || '').replace(/\s+/g, '').toUpperCase();
+
+    if (!targetReg) {
+      document.getElementById('reg-nr').textContent = 'No Registration Provided';
     } else {
-      document.getElementById('reg-nr').textContent = "Not Found";
+      fetch(SHEET_CSV_URL)
+        .then(res => res.text())
+        .then(csvText => {
+          const rows = csvText.split('\n').map(row => row.split(','));
+          
+          // Match registration (Column A) ignoring spaces
+          const matchedRow = rows.find(row => {
+            const rowReg = (row[0] || '').replace(/["\r]/g, '').replace(/\s+/g, '').toUpperCase();
+            return rowReg === targetReg;
+          });
+
+          if (matchedRow) {
+            document.getElementById('reg-nr').textContent = matchedRow[0].replace(/["\r]/g, '');
+            document.getElementById('cust-name').textContent = matchedRow[1] ? matchedRow[1].replace(/["\r]/g, '') : '--';
+            document.getElementById('cust-whatsapp').textContent = matchedRow[2] ? matchedRow[2].replace(/["\r]/g, '') : '--';
+            document.getElementById('vehicle-model').textContent = matchedRow[3] ? matchedRow[3].replace(/["\r]/g, '') : '--';
+            document.getElementById('tech-assigned').textContent = matchedRow[4] ? matchedRow[4].replace(/["\r]/g, '') : '--';
+            document.getElementById('current-status').textContent = matchedRow[6] ? matchedRow[6].replace(/["\r]/g, '') : 'CHECKED IN';
+          } else {
+            document.getElementById('reg-nr').textContent = targetReg;
+            document.getElementById('cust-name').textContent = 'Vehicle Not Found';
+            document.getElementById('cust-whatsapp').textContent = '--';
+            document.getElementById('vehicle-model').textContent = '--';
+            document.getElementById('tech-assigned').textContent = '--';
+            document.getElementById('current-status').textContent = 'NOT FOUND';
+          }
+        })
+        .catch(err => {
+          console.error(err);
+          document.getElementById('cust-name').textContent = 'Error loading data';
+        });
     }
   </script>
 
