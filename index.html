@@ -5,167 +5,28 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>OMODA & JAECOO HATFIELD - Live Service Tracker</title>
   
-  <!-- Font Awesome Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- PapaParse for reliable CSV parsing -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
   
   <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-    }
-
-    body {
-      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
-      padding: 20px;
-      color: #334155;
-    }
-
-    .card {
-      background: #ffffff;
-      border-radius: 20px;
-      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-      max-width: 550px;
-      width: 100%;
-      overflow: hidden;
-    }
-
-    .header {
-      background: linear-gradient(135deg, #0b1f3a 0%, #1e3a8a 100%);
-      color: #ffffff;
-      padding: 30px 20px;
-      text-align: center;
-      position: relative;
-    }
-
-    .header h1 {
-      font-size: 22px;
-      font-weight: 800;
-      letter-spacing: 1px;
-      text-transform: uppercase;
-      margin-bottom: 6px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 10px;
-    }
-
-    .header p {
-      color: #93c5fd;
-      font-size: 13px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 1.5px;
-    }
-
-    .card-body {
-      padding: 25px 20px;
-    }
-
-    .info-list {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-
-    .info-row {
-      background-color: #f8fafc;
-      border: 1px solid #e2e8f0;
-      padding: 14px 18px;
-      border-radius: 12px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      transition: all 0.2s ease;
-    }
-
-    .info-row:hover {
-      border-color: #cbd5e1;
-      background-color: #f1f5f9;
-    }
-
-    .label {
-      font-size: 11px;
-      font-weight: 800;
-      color: #64748b;
-      letter-spacing: 0.8px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      text-transform: uppercase;
-    }
-
-    .label i {
-      font-size: 14px;
-      color: #3b82f6;
-    }
-
-    .value {
-      font-size: 14px;
-      font-weight: 700;
-      color: #0f172a;
-    }
-
-    /* Exciting Live Status Pill */
-    .status-badge {
-      background: #dcfce7;
-      color: #15803d;
-      border: 1px solid #86efac;
-      padding: 6px 14px;
-      border-radius: 30px;
-      font-size: 12px;
-      font-weight: 800;
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      box-shadow: 0 2px 8px rgba(34, 197, 94, 0.2);
-    }
-
-    .status-dot {
-      width: 8px;
-      height: 8px;
-      background-color: #22c55e;
-      border-radius: 50%;
-      animation: pulse 1.5s infinite;
-    }
-
-    @keyframes pulse {
-      0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); }
-      70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(34, 197, 94, 0); }
-      100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
-    }
-
-    .call-btn-container {
-      margin-top: 25px;
-    }
-
-    .call-btn {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 10px;
-      width: 100%;
-      background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-      color: #ffffff;
-      padding: 16px;
-      border-radius: 12px;
-      text-decoration: none;
-      font-weight: 800;
-      font-size: 15px;
-      letter-spacing: 0.5px;
-      box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4);
-      transition: all 0.2s ease;
-    }
-
-    .call-btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 20px rgba(37, 99, 235, 0.5);
-    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Roboto, sans-serif; }
+    body { background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; color: #334155; }
+    .card { background: #ffffff; border-radius: 20px; box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3); max-width: 550px; width: 100%; overflow: hidden; }
+    .header { background: linear-gradient(135deg, #0b1f3a 0%, #1e3a8a 100%); color: #ffffff; padding: 30px 20px; text-align: center; }
+    .header h1 { font-size: 22px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 6px; display: flex; align-items: center; justify-content: center; gap: 10px; }
+    .header p { color: #93c5fd; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1.5px; }
+    .card-body { padding: 25px 20px; }
+    .info-list { display: flex; flex-direction: column; gap: 12px; }
+    .info-row { background-color: #f8fafc; border: 1px solid #e2e8f0; padding: 14px 18px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; }
+    .label { font-size: 11px; font-weight: 800; color: #64748b; letter-spacing: 0.8px; display: flex; align-items: center; gap: 8px; text-transform: uppercase; }
+    .label i { font-size: 14px; color: #3b82f6; }
+    .value { font-size: 14px; font-weight: 700; color: #0f172a; }
+    .status-badge { background: #dcfce7; color: #15803d; border: 1px solid #86efac; padding: 6px 14px; border-radius: 30px; font-size: 12px; font-weight: 800; display: inline-flex; align-items: center; gap: 8px; }
+    .status-dot { width: 8px; height: 8px; background-color: #22c55e; border-radius: 50%; animation: pulse 1.5s infinite; }
+    @keyframes pulse { 0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); } 70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(34, 197, 94, 0); } 100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); } }
+    .call-btn-container { margin-top: 25px; }
+    .call-btn { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); color: #ffffff; padding: 16px; border-radius: 12px; text-decoration: none; font-weight: 800; font-size: 15px; }
   </style>
 </head>
 <body>
@@ -181,39 +42,38 @@
         
         <div class="info-row">
           <span class="label"><i class="fa-solid fa-id-card"></i> Registration Nr</span>
-          <span class="value" id="reg-nr">AW 12 RB GP</span>
+          <span class="value" id="reg-nr">Loading...</span>
         </div>
 
         <div class="info-row">
           <span class="label"><i class="fa-solid fa-user"></i> Customer Name</span>
-          <span class="value" id="cust-name">MR JASON POTGIETER</span>
+          <span class="value" id="cust-name">Loading...</span>
         </div>
 
         <div class="info-row">
           <span class="label"><i class="fa-brands fa-whatsapp" style="color:#25D366;"></i> WhatsApp</span>
-          <span class="value" id="cust-whatsapp">0824520651</span>
+          <span class="value" id="cust-whatsapp">Loading...</span>
         </div>
 
         <div class="info-row">
           <span class="label"><i class="fa-solid fa-car"></i> Vehicle Model</span>
-          <span class="value" id="vehicle-model">OMODA</span>
+          <span class="value" id="vehicle-model">Loading...</span>
         </div>
 
         <div class="info-row">
           <span class="label"><i class="fa-solid fa-user-gear"></i> Technician</span>
-          <span class="value" id="tech-assigned">PITSI</span>
+          <span class="value" id="tech-assigned">Loading...</span>
         </div>
 
         <div class="info-row">
           <span class="label"><i class="fa-solid fa-gauge-high"></i> Current Status</span>
-          <span class="status-badge" id="current-status">
-            <span class="status-dot"></span> CHECKED IN
+          <span class="status-badge">
+            <span class="status-dot"></span> <span id="current-status">Loading...</span>
           </span>
         </div>
 
       </div>
 
-      <!-- Action Button -->
       <div class="call-btn-container">
         <a href="tel:+27120000000" class="call-btn">
           <i class="fa-solid fa-phone"></i> CALL DEALERSHIP
@@ -221,6 +81,55 @@
       </div>
     </div>
   </div>
+
+  <script>
+    // Paste your Published Google Sheet CSV URL here:
+    const SHEET_CSV_URL = 'YOUR_PUBLISHED_CSV_URL_HERE';
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const rawReg = urlParams.get('reg') || '';
+    const cleanTargetReg = rawReg.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+
+    if (!cleanTargetReg) {
+      document.getElementById('reg-nr').textContent = 'No Registration Provided';
+      document.getElementById('cust-name').textContent = '--';
+    } else {
+      Papa.parse(SHEET_CSV_URL, {
+        download: true,
+        header: false,
+        skipEmptyLines: true,
+        complete: function(results) {
+          const rows = results.data;
+          
+          // Search row where Column A matches registration ignoring all spaces/hyphens
+          const matchedRow = rows.find(row => {
+            const rowReg = (row[0] || '').replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+            return rowReg === cleanTargetReg;
+          });
+
+          if (matchedRow) {
+            document.getElementById('reg-nr').textContent = matchedRow[0] || rawReg;
+            document.getElementById('cust-name').textContent = matchedRow[1] || '--';
+            document.getElementById('cust-whatsapp').textContent = matchedRow[2] || '--';
+            document.getElementById('vehicle-model').textContent = matchedRow[3] || '--';
+            document.getElementById('tech-assigned').textContent = matchedRow[4] || '--';
+            document.getElementById('current-status').textContent = matchedRow[6] || 'CHECKED IN';
+          } else {
+            document.getElementById('reg-nr').textContent = rawReg;
+            document.getElementById('cust-name').textContent = 'Vehicle Not Found';
+            document.getElementById('cust-whatsapp').textContent = '--';
+            document.getElementById('vehicle-model').textContent = '--';
+            document.getElementById('tech-assigned').textContent = '--';
+            document.getElementById('current-status').textContent = 'NOT FOUND';
+          }
+        },
+        error: function(err) {
+          console.error(err);
+          document.getElementById('cust-name').textContent = 'Error Loading Sheet';
+        }
+      });
+    }
+  </script>
 
 </body>
 </html>
