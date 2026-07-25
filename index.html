@@ -1,93 +1,489 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Potgieter Auto | Live Vehicle Tracker</title>
-    <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        body { background-color: #0f172a; color: #f8fafc; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
-        .container { background-color: #1e293b; width: 100%; max-width: 480px; border-radius: 16px; padding: 28px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); border: 1px solid #334155; }
-        .header { text-align: center; margin-bottom: 24px; }
-        .brand { color: #38bdf8; font-size: 22px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 4px; }
-        .subtitle { color: #94a3b8; font-size: 14px; }
-        .reg-box { background-color: #0f172a; border: 2px dashed #38bdf8; border-radius: 12px; padding: 16px; text-align: center; margin-bottom: 24px; }
-        .reg-label { color: #94a3b8; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; }
-        .reg-value { font-size: 28px; font-weight: 800; color: #f8fafc; letter-spacing: 2px; margin-top: 4px; text-transform: uppercase; }
-        .status-container { display: flex; flex-direction: column; gap: 16px; margin-bottom: 24px; }
-        .status-step { display: flex; align-items: center; gap: 14px; padding: 12px; border-radius: 8px; background-color: #0f172a; opacity: 0.4; }
-        .status-step.active { opacity: 1; border-left: 4px solid #38bdf8; }
-        .status-step.completed { opacity: 1; border-left: 4px solid #22c55e; }
-        .icon { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; background-color: #334155; color: #fff; font-size: 14px; }
-        .active .icon { background-color: #38bdf8; color: #0f172a; }
-        .completed .icon { background-color: #22c55e; color: #0f172a; }
-        .info { flex: 1; }
-        .title { font-weight: 600; font-size: 15px; }
-        .desc { font-size: 12px; color: #94a3b8; }
-        .footer { text-align: center; border-top: 1px solid #334155; padding-top: 16px; }
-        .call-btn { display: inline-block; width: 100%; background-color: #22c55e; color: #ffffff; text-decoration: none; padding: 12px; border-radius: 8px; font-weight: 600; text-align: center; transition: 0.2s; }
-        .call-btn:hover { background-color: #16a34a; }
-        .error-msg { color: #ef4444; font-size: 14px; margin-top: 8px; display: none; }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Vehicle Live Service Tracker | Potgieter Auto</title>
+  
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  
+  <!-- PapaParse for CSV Parsing -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+
+  <style>
+    :root {
+      --primary: #1e3a8a;
+      --primary-dark: #1e293b;
+      --accent: #2563eb;
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+      --success: #16a34a;
+      --success-bg: #dcfce7;
+      --warning: #d97706;
+      --warning-bg: #fef3c7;
+      --info-bg: #eff6ff;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text-main);
+      display: flex;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 16px;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 480px;
+      margin: 0 auto;
+    }
+
+    .header-card {
+      background: var(--card-bg);
+      border-radius: 16px;
+      padding: 20px;
+      text-align: center;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+      border: 1px solid var(--border);
+      margin-bottom: 16px;
+    }
+
+    .brand-title {
+      font-size: 20px;
+      font-weight: 800;
+      color: var(--primary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+
+    .subtitle {
+      font-size: 13px;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .vehicle-card {
+      background: var(--primary-dark);
+      color: #ffffff;
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 16px;
+      box-shadow: 0 10px 15px -3px rgba(30, 41, 59, 0.2);
+    }
+
+    .vehicle-reg {
+      font-size: 28px;
+      font-weight: 900;
+      letter-spacing: 1px;
+      color: #ffffff;
+      text-transform: uppercase;
+    }
+
+    .customer-name {
+      font-size: 15px;
+      color: #94a3b8;
+      margin-top: 2px;
+      font-weight: 500;
+    }
+
+    .details-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .detail-item {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .detail-label {
+      font-size: 11px;
+      color: #94a3b8;
+      text-transform: uppercase;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+
+    .detail-value {
+      font-size: 14px;
+      font-weight: 700;
+      color: #ffffff;
+      margin-top: 2px;
+    }
+
+    .status-card {
+      background: var(--card-bg);
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+      border: 1px solid var(--border);
+      margin-bottom: 16px;
+    }
+
+    .status-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .status-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+
+    .status-badge {
+      background: var(--info-bg);
+      color: var(--accent);
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+      transition: all 0.3s ease;
+    }
+
+    /* Dynamic Status Badge Colors */
+    .status-badge.status-ready {
+      background: var(--success-bg);
+      color: var(--success);
+    }
+
+    .status-badge.status-hold {
+      background: var(--warning-bg);
+      color: var(--warning);
+    }
+
+    .notes-box {
+      background: #f1f5f9;
+      border-radius: 12px;
+      padding: 14px;
+      font-size: 13px;
+      color: var(--text-main);
+      line-height: 1.5;
+      border-left: 4px solid var(--accent);
+      margin-bottom: 16px;
+      white-space: pre-line; /* Preserves line breaks in technician notes */
+    }
+
+    .call-btn-container {
+      display: flex;
+      gap: 8px;
+    }
+
+    .call-btn {
+      flex: 1;
+      background: var(--primary);
+      color: #ffffff;
+      text-decoration: none;
+      padding: 14px;
+      border-radius: 12px;
+      font-weight: 800;
+      font-size: 14px;
+      text-align: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: background 0.2s;
+    }
+
+    .call-btn:hover {
+      background: #1d4ed8;
+    }
+
+    .wa-btn {
+      background: #25D366;
+      color: #ffffff;
+      padding: 0 16px;
+      border-radius: 12px;
+      text-decoration: none;
+      font-weight: 800;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: opacity 0.2s;
+    }
+
+    .wa-btn:hover {
+      opacity: 0.9;
+    }
+
+    .live-indicator {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 12px;
+      font-weight: 600;
+    }
+
+    .pulse-dot {
+      width: 8px;
+      height: 8px;
+      background-color: var(--success);
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.7); }
+      70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(22, 163, 74, 0); }
+      100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(22, 163, 74, 0); }
+    }
+
+    .loading-screen, .error-screen {
+      background: var(--card-bg);
+      border-radius: 16px;
+      padding: 40px 20px;
+      text-align: center;
+      border: 1px solid var(--border);
+    }
+
+    .spinner {
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid var(--accent);
+      border-radius: 50%;
+      width: 36px;
+      height: 36px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 16px;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .hidden {
+      display: none !important;
+    }
+  </style>
 </head>
 <body>
 
-<div class="container">
-    <div class="header">
-        <div class="brand">Potgieter Auto</div>
-        <div class="subtitle">Vehicle Service Tracker</div>
+  <div class="container">
+    
+    <!-- HEADER -->
+    <div class="header-card">
+      <div class="brand-title">Potgieter Auto</div>
+      <div class="subtitle">Live Service & Repair Status</div>
     </div>
 
-    <div class="reg-box">
-        <div class="reg-label">Registration Number</div>
-        <div class="reg-value" id="regNum">LOADING...</div>
+    <!-- LOADING SCREEN -->
+    <div id="loading" class="loading-screen">
+      <div class="spinner"></div>
+      <p style="font-size: 14px; color: var(--text-muted); font-weight: 600;">Fetching live status...</p>
     </div>
 
-    <div class="status-container">
-        <div class="status-step completed">
-            <div class="icon">✓</div>
-            <div class="info">
-                <div class="title">Vehicle Checked In</div>
-                <div class="desc">Work order logged into workshop system</div>
-            </div>
+    <!-- ERROR SCREEN -->
+    <div id="error-box" class="error-screen hidden">
+      <i class="fa-solid fa-circle-exclamation" style="font-size: 32px; color: var(--warning); margin-bottom: 12px;"></i>
+      <h3 style="font-size: 16px; font-weight: 800; margin-bottom: 6px;" id="error-title">Vehicle Not Found</h3>
+      <p style="font-size: 13px; color: var(--text-muted);" id="error-msg">Please double-check the registration number or link provided.</p>
+    </div>
+
+    <!-- MAIN TRACKER CONTENT -->
+    <div id="tracker-content" class="hidden">
+      
+      <!-- VEHICLE DETAILS CARD -->
+      <div class="vehicle-card">
+        <div class="vehicle-reg" id="display-reg">---</div>
+        <div class="customer-name" id="display-name">Valued Customer</div>
+        
+        <div class="details-grid">
+          <div class="detail-item">
+            <span class="detail-label">Make & Model</span>
+            <span class="detail-value" id="display-model">---</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Technician</span>
+            <span class="detail-value" id="display-tech">---</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- STATUS CARD -->
+      <div class="status-card">
+        <div class="status-header">
+          <span class="status-title">Current Status</span>
+          <span class="status-badge" id="display-status">IN PROGRESS</span>
         </div>
 
-        <div class="status-step active" id="stepService">
-            <div class="icon">2</div>
-            <div class="info">
-                <div class="title">Service in Progress</div>
-                <div class="desc">Technicians working on your vehicle</div>
-            </div>
+        <div class="notes-box" id="display-notes">
+          Your vehicle is currently being serviced. We will update notes as progress is made.
         </div>
 
-        <div class="status-step" id="stepReady">
-            <div class="icon">3</div>
-            <div class="info">
-                <div class="title">Ready for Collection</div>
-                <div class="desc">Inspection complete, vehicle ready</div>
-            </div>
+        <div class="call-btn-container">
+          <a href="tel:0120023088" class="call-btn">
+            <i class="fa-solid fa-phone"></i> CALL WORKSHOP
+          </a>
+          <a href="#" id="wa-share-btn" target="_blank" rel="noopener" class="wa-btn hidden">
+            <i class="fa-brands fa-whatsapp"></i> WhatsApp
+          </a>
         </div>
+
+        <div class="live-indicator">
+          <div class="pulse-dot"></div> Auto-updating live tracker
+        </div>
+      </div>
+
     </div>
 
-    <div class="footer">
-        <a href="tel:+27000000000" class="call-btn">📞 Call Potgieter Auto Workshop</a>
-    </div>
-</div>
+  </div>
 
-<script>
-    // Read ?reg= registration parameter from the Google Sheets link
-    const params = new URLSearchParams(window.location.search);
-    const regParam = params.get('reg');
+  <script>
+    const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTv3NaMRF2nGAcEb9fP0EV2bpaonpMKdhvTf8goGCAWhq9GfpkQG1_AqbemXkOEbJio2mk_YUgQs6-W/pub?gid=0&single=true&output=csv';
+    let isInitialLoad = true;
 
-    const regElement = document.getElementById('regNum');
-
-    if (regParam && regParam.trim() !== "") {
-        regElement.textContent = decodeURIComponent(regParam).toUpperCase();
-    } else {
-        regElement.textContent = "NO REG FOUND";
-        regElement.style.color = "#ef4444";
+    function getQueryParam(param) {
+      const urlParams = new URLSearchParams(window.location.search);
+      return urlParams.get(param);
     }
-</script>
 
+    function cleanReg(str) {
+      if (!str) return '';
+      return str.toString().replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+    }
+
+    function getVal(row, possibleKeys, defaultVal = '---') {
+      for (let key of Object.keys(row)) {
+        const cleanKey = key.trim().toUpperCase();
+        if (possibleKeys.includes(cleanKey)) {
+          return row[key] ? row[key].trim() : defaultVal;
+        }
+      }
+      return defaultVal;
+    }
+
+    function fetchServiceData() {
+      const targetRegParam = getQueryParam('reg');
+
+      if (!targetRegParam) {
+        showError('No Registration Provided', 'Please click the tracking link sent via WhatsApp.');
+        return;
+      }
+
+      const cleanSearchReg = cleanReg(targetRegParam);
+      // Cache bust parameter ensures fresh Google Sheet fetch
+      const cacheBustedUrl = `${CSV_URL}&_cb=${Date.now()}`;
+
+      Papa.parse(cacheBustedUrl, {
+        download: true,
+        header: true,
+        skipEmptyLines: true,
+        complete: function(results) {
+          const rows = results.data;
+          let matchedRow = null;
+
+          for (let i = 0; i < rows.length; i++) {
+            const row = rows[i];
+            const rawSheetReg = getVal(row, ['REG', 'REGISTRATION', 'REG NO', 'REGNO', 'LICENSE'], '');
+            const cleanSheetReg = cleanReg(rawSheetReg);
+
+            if (cleanSheetReg === cleanSearchReg) {
+              matchedRow = row;
+              break;
+            }
+          }
+
+          if (matchedRow) {
+            renderTracker(matchedRow);
+          } else if (isInitialLoad) {
+            showError('Vehicle Not Found', `No active record found for "${targetRegParam.toUpperCase()}". Please wait up to 45 seconds if the row was just created.`);
+          }
+          isInitialLoad = false;
+        },
+        error: function(err) {
+          if (isInitialLoad) {
+            showError('Connection Error', 'Unable to connect to Google Sheets. Ensure your sheet is published to the web.');
+          }
+        }
+      });
+    }
+
+    function renderTracker(data) {
+      document.getElementById('loading').classList.add('hidden');
+      document.getElementById('error-box').classList.add('hidden');
+      document.getElementById('tracker-content').classList.remove('hidden');
+
+      const regVal = getVal(data, ['REG', 'REGISTRATION', 'REG NO', 'REGNO'], '---');
+      const nameVal = getVal(data, ['NAME', 'CUSTOMER', 'CLIENT'], 'Valued Customer');
+      const modelVal = getVal(data, ['VEHICLE', 'MODEL', 'CAR'], '---');
+      const techVal = getVal(data, ['TECHNICIAN', 'TECH'], 'Assigned Tech');
+      const statusVal = getVal(data, ['STATUS', 'PROGRESS'], 'In Workshop');
+      const notesVal = getVal(data, ['NOTES', 'COMMENTS', 'REMARKS'], 'Work is currently underway on your vehicle.');
+      const phoneVal = getVal(data, ['PHONE', 'WHATSAPP', 'MOBILE', 'CONTACT'], '');
+
+      document.getElementById('display-reg').textContent = regVal.toUpperCase();
+      document.getElementById('display-name').textContent = nameVal;
+      document.getElementById('display-model').textContent = modelVal;
+      document.getElementById('display-tech').textContent = techVal;
+      
+      const statusBadge = document.getElementById('display-status');
+      statusBadge.textContent = statusVal;
+      
+      // Update badge style based on status keywords
+      const upperStatus = statusVal.toUpperCase();
+      statusBadge.className = 'status-badge'; // Reset classes
+      if (upperStatus.includes('READY') || upperStatus.includes('DONE') || upperStatus.includes('COMPLETE')) {
+        statusBadge.classList.add('status-ready');
+      } else if (upperStatus.includes('HOLD') || upperStatus.includes('WAITING') || upperStatus.includes('PARTS')) {
+        statusBadge.classList.add('status-hold');
+      }
+
+      document.getElementById('display-notes').textContent = notesVal;
+
+      const waBtn = document.getElementById('wa-share-btn');
+      if (phoneVal && phoneVal !== '---' && waBtn) {
+        let cleanPhone = phoneVal.toString().replace(/[^0-9]/g, '');
+        if (cleanPhone.startsWith('0')) {
+          cleanPhone = '27' + cleanPhone.substring(1);
+        }
+        const currentUrl = window.location.href;
+        const msg = encodeURIComponent(`Hello ${nameVal}, here is your live vehicle service tracking link for ${regVal}: ${currentUrl}`);
+        waBtn.href = `https://wa.me/${cleanPhone}?text=${msg}`;
+        waBtn.classList.remove('hidden');
+      }
+    }
+
+    function showError(title, message) {
+      document.getElementById('loading').classList.add('hidden');
+      document.getElementById('tracker-content').classList.add('hidden');
+      
+      document.getElementById('error-title').textContent = title;
+      document.getElementById('error-msg').textContent = message;
+      document.getElementById('error-box').classList.remove('hidden');
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      fetchServiceData();
+      // Auto-refresh data silently every 30 seconds
+      setInterval(fetchServiceData, 30000);
+    });
+  </script>
 </body>
 </html>
