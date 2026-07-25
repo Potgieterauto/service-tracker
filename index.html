@@ -55,7 +55,7 @@
         .card {
             display: flex;
             flex-direction: column;
-            gap: 16px;
+            gap: 12px;
         }
 
         .info-row {
@@ -79,6 +79,7 @@
             font-size: 15px;
             color: #0f172a;
             font-weight: 600;
+            text-align: right;
         }
 
         .status-badge {
@@ -131,10 +132,9 @@
     </div>
 
     <script>
-        // Your published Google Sheets CSV URL
         const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTv3NaMRF2nGAcEb9fP0EV2bpaonpMKdhvTf8goGCAWhq9GfpkQG1_AqbemXkOEbJio2mk_YUgQs6-W/pub?gid=0&single=true&output=csv';
 
-        // Simple CSV Parser handling quotes and commas
+        // Robust CSV Parser handling escaped quotes
         function parseCSV(text) {
             const lines = text.split(/\r\n|\n/);
             const result = [];
@@ -143,31 +143,37 @@
                 const row = [];
                 let insideQuotes = false;
                 let entry = '';
-                for (let char of lines[i]) {
+                const line = lines[i];
+                
+                for (let j = 0; j < line.length; j++) {
+                    const char = line[j];
                     if (char === '"') {
-                        insideQuotes = !insideQuotes;
+                        if (insideQuotes && line[j + 1] === '"') {
+                            entry += '"';
+                            j++; // Skip escaped quote
+                        } else {
+                            insideQuotes = !insideQuotes;
+                        }
                     } else if (char === ',' && !insideQuotes) {
-                        row.push(entry.trim().replace(/^"|"$/g, ''));
+                        row.push(entry.trim());
                         entry = '';
                     } else {
                         entry += char;
                     }
                 }
-                row.push(entry.trim().replace(/^"|"$/g, ''));
+                row.push(entry.trim());
                 result.push(row);
             }
             return result;
         }
 
-        // Clean string for accurate comparisons
-        function cleanString(str) {
+        // Clean string ONLY for comparisons (keep original for rendering labels)
+        function cleanForCompare(str) {
             return str ? str.toString().toUpperCase().replace(/[^A-Z0-9]/g, '') : '';
         }
 
         async function fetchVehicleData() {
             const contentDiv = document.getElementById('content');
-            
-            // Get registration from URL parameter
             const urlParams = new URLSearchParams(window.location.search);
             const targetReg = urlParams.get('reg');
 
@@ -183,43 +189,52 @@
 
             try {
                 const response = await fetch(CSV_URL);
-                if (!response.ok) {
-                    throw new Error('Failed to fetch data from database');
-                }
+                if (!response.ok) throw new Error('Failed to fetch sheet data');
 
                 const csvText = await response.text();
                 const rows = parseCSV(csvText);
 
-                if (rows.length < 2) {
-                    throw new Error('Database is empty or missing headers');
-                }
+                if (rows.length < 2) throw new Error('Database empty or missing headers');
 
-                const headers = rows[0].map(h => cleanString(h));
-                const cleanedTargetReg = cleanString(targetReg);
+                // Preserve original header text for UI display
+                const rawHeaders = rows[0];
+                const cleanedTargetReg = cleanForCompare(targetReg);
 
-                // Find matching row by checking registration column or any cell matching reg
-                let matchedRow = null;
+                // Find the index of the registration column, if identifiable
+                const regIndex = rawHeaders.findIndex(h => {
+                    const cleaned = cleanForCompare(h);
+                    return cleaned.includes('REG') || cleaned.includes('REGISTRATION') || cleaned.includes('PLATE');
+                });
+
+                let matchedRowData = null;
+
                 for (let i = 1; i < rows.length; i++) {
                     const row = rows[i];
-                    for (let cell of row) {
-                        if (cleanString(cell) === cleanedTargetReg) {
-                            matchedRow = {};
-                            headers.forEach((header, index) => {
-                                matchedRow[header] = row[index] || 'N/A';
-                            });
-                            break;
-                        }
+                    
+                    // Check registration column first, fallback to checking any cell
+                    const isMatch = regIndex !== -1 
+                        ? cleanForCompare(row[regIndex]) === cleanedTargetReg
+                        : row.some(cell => cleanForCompare(cell) === cleanedTargetReg);
+
+                    if (isMatch) {
+                        matchedRowData = {};
+                        rawHeaders.forEach((header, index) => {
+                            const key = header.trim();
+                            if (key) {
+                                matchedRowData[key] = row[index] ? row[index].trim() : 'N/A';
+                            }
+                        });
+                        break;
                     }
-                    if (matchedRow) break;
                 }
 
-                if (matchedRow) {
-                    displayVehicleInfo(matchedRow, targetReg);
+                if (matchedRowData) {
+                    displayVehicleInfo(matchedRowData);
                 } else {
                     contentDiv.innerHTML = `
                         <div class="message-box">
                             <div class="error-title">No vehicle found for registration: <span style="color:#1e293b;">${targetReg.toUpperCase()}</span></div>
-                            <div class="error-sub">Please check back shortly or call your service advisor.</div>
+                            <div class="error-sub">Please check back shortly or contact your service advisor.</div>
                         </div>
                     `;
                 }
@@ -235,18 +250,23 @@
             }
         }
 
-        function displayVehicleInfo(data, originalReg) {
+        function displayVehicleInfo(data) {
             const contentDiv = document.getElementById('content');
-            
-            // Extract fields dynamically or fall back gracefully
             let html = '<div class="card">';
             
             for (const [key, value] of Object.entries(data)) {
-                if (!key || value === 'N/A') continue;
+                if (!key || value === 'N/A' || value === '') continue;
+                
+                // Highlight Status row differently if detected
+                const isStatus = cleanForCompare(key).includes('STATUS');
+                const valueMarkup = isStatus 
+                    ? `<span class="status-badge">${value}</span>`
+                    : `<span class="info-value">${value}</span>`;
+
                 html += `
                     <div class="info-row">
                         <span class="info-label">${key}</span>
-                        <span class="info-value">${value}</span>
+                        ${valueMarkup}
                     </div>
                 `;
             }
@@ -255,7 +275,6 @@
             contentDiv.innerHTML = html;
         }
 
-        // Run on load
         fetchVehicleData();
     </script>
 </body>
