@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Omoda & Jaecoo Hatfield - Service Tracker</title>
+  <style>
+    :root {
+      --brand-primary: #0a192f;
+      --brand-accent: #00b4d8;
+      --bg: #f8f9fa;
+      --card: #ffffff;
+      --text: #212529;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      justify-content: center;
+    }
+    .container {
+      max-width: 450px;
+      width: 100%;
+      background: var(--card);
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    }
+    .header {
+      text-align: center;
+      border-bottom: 2px solid #f0f0f0;
+      padding-bottom: 16px;
+      margin-bottom: 20px;
+    }
+    .header h1 {
+      font-size: 1.2rem;
+      color: var(--brand-primary);
+      margin: 0;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .header p {
+      font-size: 0.85rem;
+      color: #6c757d;
+      margin-top: 4px;
+    }
+    .vehicle-card {
+      background: #f1f5f9;
+      border-radius: 10px;
+      padding: 14px;
+      margin-bottom: 20px;
+    }
+    .vehicle-card div {
+      font-size: 0.9rem;
+      margin-bottom: 6px;
+    }
+    .vehicle-card strong {
+      color: var(--brand-primary);
+    }
+    /* Timeline / Progress Bar */
+    .timeline {
+      list-style: none;
+      padding: 0;
+      position: relative;
+    }
+    .timeline::before {
+      content: '';
+      position: absolute;
+      left: 18px;
+      top: 10px;
+      bottom: 10px;
+      width: 3px;
+      background: #e2e8f0;
+    }
+    .step {
+      position: relative;
+      padding-left: 45px;
+      margin-bottom: 24px;
+      font-size: 0.95rem;
+      color: #94a3b8;
+    }
+    .step-icon {
+      position: absolute;
+      left: 7px;
+      top: 0;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: #cbd5e1;
+      border: 3px solid #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      color: #fff;
+    }
+    /* Active & Completed Stages */
+    .step.completed {
+      color: var(--brand-primary);
+      font-weight: 500;
+    }
+    .step.completed .step-icon {
+      background: #10b981; /* Green */
+    }
+    .step.active {
+      color: var(--brand-accent);
+      font-weight: 700;
+    }
+    .step.active .step-icon {
+      background: var(--brand-accent);
+      box-shadow: 0 0 0 4px rgba(0, 180, 216, 0.2);
+    }
+    .notes-box {
+      margin-top: 20px;
+      background: #fffbe0;
+      border-left: 4px solid #f59e0b;
+      padding: 12px;
+      border-radius: 4px;
+      font-size: 0.85rem;
+    }
+    .error-msg {
+      color: #ef4444;
+      text-align: center;
+      padding: 20px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header">
+    <h1>Omoda & Jaecoo Hatfield</h1>
+    <p>Live Vehicle Service Tracker</p>
+  </div>
+
+  <div id="content">Loading service details...</div>
+</div>
+
+<script>
+  // 1. PASTE YOUR PUBLISHED GOOGLE SHEET CSV URL HERE:
+  const GOOGLE_SHEET_CSV_URL = "YOUR_PUBLISHED_CSV_URL_HERE";
+
+  // Define the standard stages matching Column G in Google Sheets
+  const STAGES = [
+    "1. Vehicle Checked In",
+    "2. In Bay - Inspection/Diagnostic",
+    "3. Work in Progress",
+    "4. Awaiting Parts / Customer Approval",
+    "5. Quality Control & Wash Bay",
+    "6. Ready for Collection"
+  ];
+
+  // Get registration number from URL query string (?reg=AB12CDGP)
+  const urlParams = new URLSearchParams(window.location.search);
+  const targetReg = (urlParams.get('reg') || "").replace(/\s+/g, '').toUpperCase();
+
+  async function fetchStatus() {
+    if (!targetReg) {
+      document.getElementById('content').innerHTML = `
+        <div class="error-msg">
+          <strong>No Registration Number Provided</strong><br>
+          Please use the link provided in your service notification.
+        </div>`;
+      return;
+    }
+
+    try {
+      const response = await fetch(GOOGLE_SHEET_CSV_URL);
+      const csvText = await response.text();
+      
+      // Parse CSV rows
+      const rows = csvText.split('\n').map(row => row.split(','));
+      
+      // Find row matching Registration No (Col A / Index 0)
+      const matchingRow = rows.find(r => r[0] && r[0].replace(/["\s]/g, '').toUpperCase() === targetReg);
+
+      if (!matchingRow) {
+        document.getElementById('content').innerHTML = `
+          <div class="error-msg">
+            No vehicle found for registration: <strong>${targetReg}</strong>.<br>
+            Please check back shortly or call your service advisor.
+          </div>`;
+        return;
+      }
+
+      // Extract values from CSV columns
+      const regNo = matchingRow[0].replace(/"/g, '').trim();
+      const clientName = matchingRow[1].replace(/"/g, '').trim();
+      const model = matchingRow[3].replace(/"/g, '').trim();
+      const tech = matchingRow[4].replace(/"/g, '').trim();
+      const estTime = matchingRow[5].replace(/"/g, '').trim();
+      const currentStatus = matchingRow[6].replace(/"/g, '').trim();
+      const notes = matchingRow[7] ? matchingRow[7].replace(/"/g, '').trim() : "";
+
+      // Determine current stage index
+      let currentStageIdx = STAGES.findIndex(s => currentStatus.toLowerCase().includes(s.substring(3).toLowerCase()));
+      if (currentStageIdx === -1) currentStageIdx = 0;
+
+      // Render timeline HTML
+      let timelineHtml = '<ul class="timeline">';
+      STAGES.forEach((stageName, idx) => {
+        let stateClass = "";
+        let iconSymbol = idx + 1;
+
+        if (idx < currentStageIdx) {
+          stateClass = "completed";
+          iconSymbol = "✓";
+        } else if (idx === currentStageIdx) {
+          stateClass = "active";
+          iconSymbol = "●";
+        }
+
+        timelineHtml += `
+          <li class="step ${stateClass}">
+            <div class="step-icon">${iconSymbol}</div>
+            ${stageName.substring(3)}
+          </li>`;
+      });
+      timelineHtml += '</ul>';
+
+      // Render UI
+      document.getElementById('content').innerHTML = `
+        <div class="vehicle-card">
+          <div><strong>Vehicle:</strong> ${model} (${regNo})</div>
+          <div><strong>Client:</strong> ${clientName}</div>
+          <div><strong>Assigned Tech:</strong> ${tech || 'Unassigned'}</div>
+          <div><strong>Est. Ready Time:</strong> ${estTime || 'TBD'}</div>
+        </div>
+
+        ${timelineHtml}
+
+        ${notes ? `<div class="notes-box"><strong>Workshop Note:</strong> ${notes}</div>` : ''}
+      `;
+
+    } catch (err) {
+      document.getElementById('content').innerHTML = `
+        <div class="error-msg">Unable to load status. Please refresh the page.</div>`;
+    }
+  }
+
+  // Fetch immediately and auto-refresh every 30 seconds
+  fetchStatus();
+  setInterval(fetchStatus, 30000);
+</script>
+
+</body>
+</html>
