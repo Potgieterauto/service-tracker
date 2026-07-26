@@ -6,6 +6,8 @@
   <title>OMODA & JAECOO HATFIELD - Live Service Tracker</title>
   
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Fallback PapaParse library -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
   
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Roboto, sans-serif; }
@@ -82,12 +84,13 @@
 
   <script>
     const API_URL = 'https://script.google.com/macros/s/AKfycbwth_i4jS0a4jSrw2Usc4Y0mRAwY7NNsywipXZpBZhsfPPiqMuEN8bizhSbhCwGAyj9/exec';
+    const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTv3NaMRF2nGAcEb9fP0EV2bpaonpMKdhvTf8goGCAWhq9GfpkQG1_AqbemXkOEbJio2mk_YUgQs6-W/pub?gid=0&single=true&output=csv';
 
     const urlParams = new URLSearchParams(window.location.search);
     const rawReg = urlParams.get('reg') || '';
     const cleanTargetReg = rawReg.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
 
-    function fetchTrackerData() {
+    function renderData(rows) {
       if (!cleanTargetReg) {
         document.getElementById('reg-nr').textContent = 'No Reg Provided';
         document.getElementById('cust-name').textContent = '--';
@@ -98,41 +101,64 @@
         return;
       }
 
-      fetch(API_URL)
+      const matchedRow = rows.find(row => {
+        const rowReg = String(row[0] || '').replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+        return rowReg === cleanTargetReg;
+      });
+
+      if (matchedRow) {
+        document.getElementById('reg-nr').textContent = matchedRow[0] || rawReg;
+        document.getElementById('cust-name').textContent = matchedRow[1] || '--';
+        document.getElementById('cust-whatsapp').textContent = matchedRow[2] || '--';
+        document.getElementById('vehicle-model').textContent = matchedRow[3] || '--';
+        document.getElementById('tech-assigned').textContent = matchedRow[4] || '--';
+        document.getElementById('current-status').textContent = matchedRow[6] || 'CHECKED IN';
+      } else {
+        document.getElementById('reg-nr').textContent = rawReg;
+        document.getElementById('cust-name').textContent = 'Vehicle Not Found';
+        document.getElementById('cust-whatsapp').textContent = '--';
+        document.getElementById('vehicle-model').textContent = '--';
+        document.getElementById('tech-assigned').textContent = '--';
+        document.getElementById('current-status').textContent = 'NOT FOUND';
+      }
+    }
+
+    function fetchTrackerData() {
+      // Primary attempt via Google Apps Script API
+      fetch(API_URL, { redirect: 'follow' })
         .then(response => response.json())
         .then(rows => {
-          // Search row where Column A registration matches ignoring spaces and special chars
-          const matchedRow = rows.find(row => {
-            const rowReg = String(row[0] || '').replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
-            return rowReg === cleanTargetReg;
-          });
-
-          if (matchedRow) {
-            document.getElementById('reg-nr').textContent = matchedRow[0] || rawReg;
-            document.getElementById('cust-name').textContent = matchedRow[1] || '--';
-            document.getElementById('cust-whatsapp').textContent = matchedRow[2] || '--';
-            document.getElementById('vehicle-model').textContent = matchedRow[3] || '--';
-            document.getElementById('tech-assigned').textContent = matchedRow[4] || '--';
-            document.getElementById('current-status').textContent = matchedRow[6] || 'CHECKED IN';
+          if (Array.isArray(rows) && rows.length > 0) {
+            renderData(rows);
           } else {
-            document.getElementById('reg-nr').textContent = rawReg;
-            document.getElementById('cust-name').textContent = 'Vehicle Not Found';
-            document.getElementById('cust-whatsapp').textContent = '--';
-            document.getElementById('vehicle-model').textContent = '--';
-            document.getElementById('tech-assigned').textContent = '--';
-            document.getElementById('current-status').textContent = 'NOT FOUND';
+            fallbackCSV();
           }
         })
         .catch(err => {
-          console.error(err);
-          document.getElementById('cust-name').textContent = 'Error Loading Data';
+          console.warn('API fetch failed, switching to CSV fallback:', err);
+          fallbackCSV();
         });
     }
 
-    // Initial fetch on page load
+    function fallbackCSV() {
+      Papa.parse(SHEET_CSV_URL + '&t=' + Date.now(), {
+        download: true,
+        header: false,
+        skipEmptyLines: true,
+        complete: function(results) {
+          renderData(results.data);
+        },
+        error: function(err) {
+          console.error('Fallback CSV failed:', err);
+          document.getElementById('cust-name').textContent = 'Error Loading Data';
+        }
+      });
+    }
+
+    // Run on page load
     fetchTrackerData();
 
-    // Auto-refresh data every 15 seconds dynamically in the background
+    // Refresh every 15 seconds automatically
     setInterval(fetchTrackerData, 15000);
   </script>
 
