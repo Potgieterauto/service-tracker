@@ -6,8 +6,6 @@
   <title>OMODA & JAECOO HATFIELD - Live Service Tracker</title>
   
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <!-- PapaParse for reliable CSV parsing -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
   
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Roboto, sans-serif; }
@@ -76,37 +74,36 @@
 
       <div class="call-btn-container">
         <a href="tel:0120020664" class="call-btn">
-          <i class="fa-solid fa-phone"></i> CALL DEALERSHIP (012 002 0664)
+          <i class="fa-solid fa-phone"></i> CALL DEALERSHIP
         </a>
       </div>
     </div>
   </div>
 
   <script>
-    const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTv3NaMRF2nGAcEb9fP0EV2bpaonpMKdhvTf8goGCAWhq9GfpkQG1_AqbemXkOEbJio2mk_YUgQs6-W/pub?gid=0&single=true&output=csv';
+    const API_URL = 'https://script.google.com/macros/s/AKfycbwth_i4jS0a4jSrw2Usc4Y0mRAwY7NNsywipXZpBZhsfPPiqMuEN8bizhSbhCwGAyj9/exec';
 
     const urlParams = new URLSearchParams(window.location.search);
     const rawReg = urlParams.get('reg') || '';
     const cleanTargetReg = rawReg.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
 
-    if (!cleanTargetReg) {
-      document.getElementById('reg-nr').textContent = 'No Reg Provided';
-      document.getElementById('cust-name').textContent = '--';
-      document.getElementById('cust-whatsapp').textContent = '--';
-      document.getElementById('vehicle-model').textContent = '--';
-      document.getElementById('tech-assigned').textContent = '--';
-      document.getElementById('current-status').textContent = 'N/A';
-    } else {
-      Papa.parse(SHEET_CSV_URL, {
-        download: true,
-        header: false,
-        skipEmptyLines: true,
-        complete: function(results) {
-          const rows = results.data;
-          
+    function fetchTrackerData() {
+      if (!cleanTargetReg) {
+        document.getElementById('reg-nr').textContent = 'No Reg Provided';
+        document.getElementById('cust-name').textContent = '--';
+        document.getElementById('cust-whatsapp').textContent = '--';
+        document.getElementById('vehicle-model').textContent = '--';
+        document.getElementById('tech-assigned').textContent = '--';
+        document.getElementById('current-status').textContent = 'N/A';
+        return;
+      }
+
+      fetch(API_URL)
+        .then(response => response.json())
+        .then(rows => {
           // Search row where Column A registration matches ignoring spaces and special chars
           const matchedRow = rows.find(row => {
-            const rowReg = (row[0] || '').replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+            const rowReg = String(row[0] || '').replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
             return rowReg === cleanTargetReg;
           });
 
@@ -125,13 +122,18 @@
             document.getElementById('tech-assigned').textContent = '--';
             document.getElementById('current-status').textContent = 'NOT FOUND';
           }
-        },
-        error: function(err) {
+        })
+        .catch(err => {
           console.error(err);
           document.getElementById('cust-name').textContent = 'Error Loading Data';
-        }
-      });
+        });
     }
+
+    // Initial fetch on page load
+    fetchTrackerData();
+
+    // Auto-refresh data every 15 seconds dynamically in the background
+    setInterval(fetchTrackerData, 15000);
   </script>
 
 </body>
