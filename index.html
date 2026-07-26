@@ -6,8 +6,9 @@
   <title>OMODA & JAECOO HATFIELD - Live Service Tracker</title>
   
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <!-- Fallback PapaParse library -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+  <!-- Realtime Websocket Library -->
+  <script src="https://js.pusher.com/8.2.0/pusher.min.js"></script>
   
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Roboto, sans-serif; }
@@ -83,12 +84,24 @@
   </div>
 
   <script>
+    const PUSHER_KEY = '44dedb51dd5ce813e5f7';
+    const PUSHER_CLUSTER = 'eu';
+
     const API_URL = 'https://script.google.com/macros/s/AKfycbwth_i4jS0a4jSrw2Usc4Y0mRAwY7NNsywipXZpBZhsfPPiqMuEN8bizhSbhCwGAyj9/exec';
     const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTv3NaMRF2nGAcEb9fP0EV2bpaonpMKdhvTf8goGCAWhq9GfpkQG1_AqbemXkOEbJio2mk_YUgQs6-W/pub?gid=0&single=true&output=csv';
 
     const urlParams = new URLSearchParams(window.location.search);
     const rawReg = urlParams.get('reg') || '';
     const cleanTargetReg = rawReg.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+
+    function updateSingleRow(row) {
+      document.getElementById('reg-nr').textContent = row[0] || rawReg;
+      document.getElementById('cust-name').textContent = row[1] || '--';
+      document.getElementById('cust-whatsapp').textContent = row[2] || '--';
+      document.getElementById('vehicle-model').textContent = row[3] || '--';
+      document.getElementById('tech-assigned').textContent = row[4] || '--';
+      document.getElementById('current-status').textContent = row[6] || 'CHECKED IN';
+    }
 
     function renderData(rows) {
       if (!cleanTargetReg) {
@@ -107,12 +120,7 @@
       });
 
       if (matchedRow) {
-        document.getElementById('reg-nr').textContent = matchedRow[0] || rawReg;
-        document.getElementById('cust-name').textContent = matchedRow[1] || '--';
-        document.getElementById('cust-whatsapp').textContent = matchedRow[2] || '--';
-        document.getElementById('vehicle-model').textContent = matchedRow[3] || '--';
-        document.getElementById('tech-assigned').textContent = matchedRow[4] || '--';
-        document.getElementById('current-status').textContent = matchedRow[6] || 'CHECKED IN';
+        updateSingleRow(matchedRow);
       } else {
         document.getElementById('reg-nr').textContent = rawReg;
         document.getElementById('cust-name').textContent = 'Vehicle Not Found';
@@ -123,43 +131,37 @@
       }
     }
 
-    function fetchTrackerData() {
-      // Primary attempt via Google Apps Script API
+    function fetchInitialData() {
       fetch(API_URL, { redirect: 'follow' })
-        .then(response => response.json())
-        .then(rows => {
-          if (Array.isArray(rows) && rows.length > 0) {
-            renderData(rows);
-          } else {
-            fallbackCSV();
-          }
-        })
-        .catch(err => {
-          console.warn('API fetch failed, switching to CSV fallback:', err);
-          fallbackCSV();
+        .then(res => res.json())
+        .then(rows => renderData(rows))
+        .catch(() => {
+          Papa.parse(SHEET_CSV_URL + '&t=' + Date.now(), {
+            download: true,
+            header: false,
+            skipEmptyLines: true,
+            complete: res => renderData(res.data)
+          });
         });
     }
 
-    function fallbackCSV() {
-      Papa.parse(SHEET_CSV_URL + '&t=' + Date.now(), {
-        download: true,
-        header: false,
-        skipEmptyLines: true,
-        complete: function(results) {
-          renderData(results.data);
-        },
-        error: function(err) {
-          console.error('Fallback CSV failed:', err);
-          document.getElementById('cust-name').textContent = 'Error Loading Data';
+    // Initial page load
+    fetchInitialData();
+
+    // Set up real-time websocket listener for onEdit updates
+    if (PUSHER_KEY) {
+      const pusher = new Pusher(PUSHER_KEY, { cluster: PUSHER_CLUSTER });
+      const channel = pusher.subscribe('tracker-channel');
+      
+      channel.bind('status-update', function(data) {
+        if (data && data.row) {
+          const rowReg = String(data.row[0] || '').replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+          if (rowReg === cleanTargetReg) {
+            updateSingleRow(data.row);
+          }
         }
       });
     }
-
-    // Run on page load
-    fetchTrackerData();
-
-    // Refresh every 15 seconds automatically
-    setInterval(fetchTrackerData, 15000);
   </script>
 
 </body>
