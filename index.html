@@ -2,12 +2,14 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>OMODA & JAECOO HATFIELD - Live Service Tracker</title>
   
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
-  <!-- Realtime Websocket Library -->
   <script src="https://js.pusher.com/8.2.0/pusher.min.js"></script>
   
   <style>
@@ -132,37 +134,29 @@
     }
 
     function fetchLiveData() {
-      // Add dynamic timestamp to break mobile browser caching
-      const timestampUrl = SHEET_CSV_URL + '&t=' + new Date().getTime();
+      const cacheBuster = '&t=' + Date.now();
       
-      Papa.parse(timestampUrl, {
-        download: true,
-        header: false,
-        skipEmptyLines: true,
-        complete: res => renderData(res.data),
-        error: () => {
-          fetch(API_URL + '?t=' + new Date().getTime(), { redirect: 'follow' })
-            .then(res => res.json())
-            .then(rows => renderData(rows))
-            .catch(err => console.error(err));
-        }
-      });
+      fetch(API_URL + '?cache=' + Date.now(), { redirect: 'follow', cache: 'no-store' })
+        .then(res => res.json())
+        .then(rows => renderData(rows))
+        .catch(() => {
+          Papa.parse(SHEET_CSV_URL + cacheBuster, {
+            download: true,
+            header: false,
+            skipEmptyLines: true,
+            cache: false,
+            complete: res => renderData(res.data)
+          });
+        });
     }
 
-    // 1. Initial Load
+    // Initial Load
     fetchLiveData();
 
-    // 2. Background Heartbeat Poll (Checks every 10 seconds silently)
-    setInterval(fetchLiveData, 10000);
+    // 5-Second Aggressive Fallback Poll to guarantee sync without pulling
+    setInterval(fetchLiveData, 5000);
 
-    // 3. Auto-refresh when customer unlocks phone or opens tab back up
-    document.addEventListener('visibilitychange', function() {
-      if (document.visibilityState === 'visible') {
-        fetchLiveData();
-      }
-    });
-
-    // 4. Real-time Pusher Socket
+    // Real-time Websocket Listener via Pusher
     if (PUSHER_KEY) {
       const pusher = new Pusher(PUSHER_KEY, { cluster: PUSHER_CLUSTER });
       const channel = pusher.subscribe('tracker-channel');
